@@ -30,7 +30,7 @@ func (s *userService) Signup(user *domain.User) error {
 }
 
 func (s *userService) Login(email, password string) (string, error) {
-	user, err := s.repo.GetUserByEmail(email)
+	user, err := s.repository.GetUserByEmail(email)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
