@@ -3,7 +3,8 @@ package repository
 import (
   "database/sql"
   "errors"
-  "github.com/HarshtihRajesh/chat-app/internal/domain"
+  // "github.com/HarshtihRajesh/app-chat/internal/domain"
+  "github.com/HarshithRajesh/app-chat/internal/domain"
 )
 
 type UserRepository interface {

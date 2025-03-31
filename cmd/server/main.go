@@ -5,10 +5,10 @@ import (
   "fmt"
   "log"
   "net/http"
-  "github.com/HarshithRajesh/chat-app/internal/api"
-  "github.com/HarshithRajesh/chat-app/internal/config"
-  "github.com/HarshithRajesh/chat-app/internal/repository"
-  "github.com/HarshithRajesh/chat-app/internal/service"
+  "github.com/HarshithRajesh/app-chat/internal/api"
+  "github.com/HarshithRajesh/app-chat/internal/config"
+  "github.com/HarshithRajesh/app-chat/internal/repository"
+  "github.com/HarshithRajesh/app-chat/internal/service"
 )
 type Response struct{
   Message string `json:"message"`

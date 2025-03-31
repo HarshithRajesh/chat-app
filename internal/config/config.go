@@ -5,7 +5,7 @@ import (
   "fmt"
   "log"
 
-  "_github.com/lib/pq"
+  _ "github.com/lib/pq"
 )
 
 

@@ -5,8 +5,8 @@ import (
   "net/http"
   "fmt"
   "log"
-  "github.com/HarshithRajesh/chat-app/internal/domain"
-  "github.com/HarshithRajesh/chat-app/internal/service"
+  "github.com/HarshithRajesh/app-chat/internal/domain"
+  "github.com/HarshithRajesh/app-chat/internal/service"
 )
 
 
