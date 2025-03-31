@@ -5,6 +5,10 @@ import (
   "fmt"
   "log"
   "net/http"
+  "github.com/HarshithRajesh/chat-app/internal/api"
+  "github.com/HarshithRajesh/chat-app/internal/config"
+  "github.com/HarshithRajesh/chat-app/internal/repository"
+  "github.com/HarshithRajesh/chat-app/internal/service"
 )
 type Response struct{
   Message string `json:"message"`
@@ -20,6 +24,12 @@ func handler(w http.ResponseWriter, r *http.Request){
 }
 
 func main(){
+  db := config.ConnectDB()
+  userRepo := repository.NewUserRepositoroy(db)
+  userService := service.NewUserService(userRepo)
+  userHandler := api.NewUserHandler(userService)
+
+  http.HandleFunc("/signup",userHandler.Signup)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))
