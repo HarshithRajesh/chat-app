@@ -48,7 +48,7 @@ func (r* userRepository) LoginCheck(email string, password string)(*domain.User,
   var user domain.User
   query := "SELECT * FROM users WHERE email=$1"
   row := r.db.QueryRow(query,email)
-  err := row.Scan(&user.Email)
+  err := row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
   if err != nil {
     if err == sql.ErrNoRows {
       return nil, errors.New("user not found")

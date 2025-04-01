@@ -36,5 +36,5 @@ func (s *userService) Login(user *domain.User)error{
   if log != nil{
     return errors.New("login failed")
   }
-  return &user
+  return nil
 }
