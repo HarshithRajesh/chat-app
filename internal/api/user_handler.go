@@ -3,8 +3,9 @@ package api
 import (
   "encoding/json"
   "net/http"
-  "fmt"
-  "log"
+  // "fmt"
+  // "log"
+  "io/ioutil"
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/HarshithRajesh/app-chat/internal/service"
 )

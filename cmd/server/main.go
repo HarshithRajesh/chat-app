@@ -25,11 +25,11 @@ func handler(w http.ResponseWriter, r *http.Request){
 
 func main(){
   db := config.ConnectDB()
-  userRepo := repository.NewUserRepositoroy(db)
+  userRepo := repository.NewUserRepository(db)
   userService := service.NewUserService(userRepo)
   userHandler := api.NewUserHandler(userService)
 
-  http.HandleFunc("/signup",userHandler.Signup)
+  http.HandleFunc("/signup",userHandler.SignUp)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))

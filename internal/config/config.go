@@ -10,7 +10,7 @@ import (
 
 
 func ConnectDB() *sql.DB {
-  connStr := "postgres://neo:babe@postgres:5432/chat_app?sslmode=disable" 
+  connStr := "postgres://neo:babe@localhost:5432/chat_app?sslmode=disable" 
   db,err := sql.Open("postgres",connStr)
   if err != nil {
     log.Fatal("Unable to connect to database:",err)
