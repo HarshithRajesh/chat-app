@@ -10,6 +10,7 @@ import (
 type UserRepository interface {
   CreateUser(user *domain.User) error 
   GetUserByEmail(email string)(*domain.User,error)
+  LoginCheck(email string,password string)(*domain.User,error)
 }
 
 type userRepository struct{
@@ -33,7 +34,7 @@ func (r *userRepository) GetUserByEmail(email string)(*domain.User,error){
   var user domain.User
   query := "SELECT * FROM users WHERE email=$1"
   row := r.db.QueryRow(query,email)
-  err := row.Scan()
+  err := row.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
   if err != nil {
     if err == sql.ErrNoRows {
       return nil, errors.New("user not found")
@@ -41,5 +42,23 @@ func (r *userRepository) GetUserByEmail(email string)(*domain.User,error){
     return nil, errors.New("failed to fetch user: "+err.Error())
   }
   return &user, nil
+}
+
+func (r* userRepository) LoginCheck(email string, password string)(*domain.User,error){
+  var user domain.User
+  query := "SELECT * FROM users WHERE email=$1"
+  row := r.db.QueryRow(query,email)
+  err := row.Scan(&user.Email)
+  if err != nil {
+    if err == sql.ErrNoRows {
+      return nil, errors.New("user not found")
+    }
+    return nil, errors.New("failed to fetch user: "+err.Error())
+  }
+  if user.Password != password{
+    return nil,errors.New("Password didnt match")
+  }
+  return &user,nil
+
 }
 

@@ -5,9 +5,12 @@ import (
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/HarshithRajesh/app-chat/internal/repository"
 )
-
+type Response struct{
+  Message string `json:"message"`
+}
 type UserService interface {
   SignUp(user *domain.User) error 
+  Login(user *domain.User) error
 }
 
 type userService struct {
@@ -24,6 +27,14 @@ func (s *userService) SignUp(user *domain.User) error {
     return errors.New("email already registered")
   }
 
-  user.Password = "hashed_"+user.Password
+  // user.Password = "hashed_"+user.Password
   return s.repo.CreateUser(user)
+}
+
+func (s *userService) Login(user *domain.User)error{
+  log,_ := s.repo.LoginCheck(user.Email,user.Password)
+  if log != nil{
+    return errors.New("login failed")
+  }
+  return &user
 }
