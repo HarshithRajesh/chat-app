@@ -32,9 +32,13 @@ func (s *userService) SignUp(user *domain.User) error {
 }
 
 func (s *userService) Login(user *domain.User)error{
-  log,_ := s.repo.LoginCheck(user.Email,user.Password)
-  if log != nil{
-    return errors.New("login failed")
+  log,err := s.repo.LoginCheck(user.Email,user.Password)
+  if err != nil{
+    return err
   }
+  if log.Password != user.Password{
+    return errors.New("Password didnt match")
+  }
+  *user = *log
   return nil
 }

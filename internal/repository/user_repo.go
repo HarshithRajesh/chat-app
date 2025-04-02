@@ -55,10 +55,7 @@ func (r* userRepository) LoginCheck(email string, password string)(*domain.User,
     }
     return nil, errors.New("failed to fetch user: "+err.Error())
   }
-  if user.Password != password{
-    return nil,errors.New("Password didnt match")
-  }
-  return &user,nil
+    return &user,nil
 
 }
 
