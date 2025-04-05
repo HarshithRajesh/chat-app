@@ -63,3 +63,26 @@ func (h *UserHandler) Login(w http.ResponseWriter,r *http.Request){
   w.Write([]byte("Login successfully"))
 
 }
+
+func (h *UserHandler) Profile(w http.ResponseWriter,r *http.Request){
+  if r.Method != http.MethodPost{
+  http.Error(w,"Invalid request method",http.StatusMethodNotAllowed)
+  return
+  }
+
+  body ,_ := ioutil.ReadAll(r.Body)
+  var profile domain.Profile
+  if err := json.Unmarshal(body,&profile);err != nil{
+    http.Error(w,err.Error(),http.StatusBadRequest)
+    return
+  }
+
+  if err := h.userService.Profile(&profile); err != nil{
+    http.Error(w,err.Error().http.StatusBadRequest)
+    return
+  }
+  
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte("Profile"))
+
+}
