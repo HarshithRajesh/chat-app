@@ -12,3 +12,13 @@ type User struct {
   CreatedAt time.Time
   UpdatedAt time.Time
 }
+
+type Profile struct {
+  Id                    uint      `gorm:"primaryKey;refrences:Id"`
+  Name                  string    `gorm:"size:100"`
+  Phone_Number          string    
+  Bio                   string
+  Profile_Picture_Url   string
+  CreatedAt             time.time
+  UpdatedAt             time.time  
+}
