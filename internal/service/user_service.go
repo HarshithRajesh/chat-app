@@ -11,6 +11,7 @@ type Response struct{
 type UserService interface {
   SignUp(user *domain.User) error 
   Login(user *domain.User) error
+  Profile(profile *domain.Profile) error
 }
 
 type userService struct {
@@ -41,4 +42,16 @@ func (s *userService) Login(user *domain.User)error{
   }
   *user = *log
   return nil
+}
+
+func (s *userService) Profile(profile *domain.Profile)error{
+  existing,err := s.repo.GetProfile(profile.Phone_Number)
+  if err != nil{
+    if err.Error() == "profile not found"{
+      return s.repo.CreateProfile(profile)
+    }
+    return err 
+  }
+  return s.repo.UpdateProfile(profile)
+
 }

@@ -22,3 +22,11 @@ type Profile struct {
   CreatedAt             time.time
   UpdatedAt             time.time  
 }
+
+type UpdateProfile struct{
+  id                uint
+
+  Name              *string
+  Bio               *string
+  ProfilePictureUrl *string
+}
