@@ -3,7 +3,6 @@ package repository
 import (
   "database/sql"
   "errors"
-  // "github.com/HarshtihRajesh/app-chat/internal/domain"
   "github.com/HarshithRajesh/app-chat/internal/domain"
 )
 
@@ -11,6 +10,8 @@ type UserRepository interface {
   CreateUser(user *domain.User) error 
   GetUserByEmail(email string)(*domain.User,error)
   LoginCheck(email string,password string)(*domain.User,error)
+  CreateProfile(profile *domain.Profile) error
+  GetProfile(phone_number string)(*domain.Profile,error)
 }
 
 type userRepository struct{
@@ -59,3 +60,13 @@ func (r* userRepository) LoginCheck(email string, password string)(*domain.User,
 
 }
 
+func (r* userRepository) CreateProfile(profile *domain.Profile) error{
+  query:="INSERT INTO profiles(id,name,phone_number,profile_picture_url) VALUES ($1,$2,$3,$4)"
+  _,err := r.db.Exec(query,profile.Id,profile.Name,profile.Phone_number,profile.Profile_Picture_Url)
+  if err != nil{
+    return errors.New("failed to create profile"+err.Error())
+  }
+  return nil
+}
+
+func (r* userRepository) GetProfile(phone_number)
