@@ -19,13 +19,12 @@ type Profile struct {
   Phone_Number          string    
   Bio                   string
   Profile_Picture_Url   string
-  CreatedAt             time.time
-  UpdatedAt             time.time  
+  CreatedAt             time.Time
+  UpdatedAt             time.Time  
 }
 
 type UpdateProfile struct{
-  id                uint
-
+  Id                uint
   Name              *string
   Bio               *string
   ProfilePictureUrl *string

@@ -78,11 +78,11 @@ func (h *UserHandler) Profile(w http.ResponseWriter,r *http.Request){
   }
 
   if err := h.userService.Profile(&profile); err != nil{
-    http.Error(w,err.Error().http.StatusBadRequest)
+    http.Error(w,err.Error(),http.StatusBadRequest)
     return
   }
   
   w.WriteHeader(http.StatusOK)
-  w.Write([]byte("Profile"))
+  w.Write([]byte("Profile Updated"))
 
 }

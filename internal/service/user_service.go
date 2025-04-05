@@ -45,13 +45,25 @@ func (s *userService) Login(user *domain.User)error{
 }
 
 func (s *userService) Profile(profile *domain.Profile)error{
-  existing,err := s.repo.GetProfile(profile.Phone_Number)
+  _,err := s.repo.GetProfile(profile.Id)
   if err != nil{
     if err.Error() == "profile not found"{
       return s.repo.CreateProfile(profile)
     }
     return err 
   }
-  return s.repo.UpdateProfile(profile)
+  updateInput := &domain.UpdateProfile{
+    Id : profile.Id,
+  }
+  if profile.Name != ""{
+    updateInput.Name = &profile.Name
+  }
+  if profile.Bio != ""{
+    updateInput.Bio = &profile.Bio 
+  }
+  if profile.Profile_Picture_Url != ""{
+    updateInput.ProfilePictureUrl = &profile.Profile_Picture_Url
+  }
+  return s.repo.UpdateProfile(updateInput)
 
 }

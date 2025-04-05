@@ -4,6 +4,9 @@ import (
   "database/sql"
   "errors"
   "github.com/HarshithRajesh/app-chat/internal/domain"
+  "fmt"
+  "time"
+  "strings"
 )
 
 type UserRepository interface {
@@ -11,8 +14,8 @@ type UserRepository interface {
   GetUserByEmail(email string)(*domain.User,error)
   LoginCheck(email string,password string)(*domain.User,error)
   CreateProfile(profile *domain.Profile) error
-  GetProfile(phone_number string)(*domain.Profile,error)
-  UpdateProfile(profile *domain.Profile) error
+  GetProfile(id uint)(*domain.Profile,error)
+  UpdateProfile(profile *domain.UpdateProfile) error
 }
 
 type userRepository struct{
@@ -63,18 +66,18 @@ func (r* userRepository) LoginCheck(email string, password string)(*domain.User,
 
 func (r* userRepository) CreateProfile(profile *domain.Profile) error{
   query:="INSERT INTO profiles(id,name,phone_number,bio,profile_picture_url) VALUES ($1,$2,$3,$4,$5)"
-  _,err := r.db.Exec(query,&profile.Id,&profile.Name,&profile.Phone_number,&profile.Bio,&profile.Profile_Picture_Url)
+  _,err := r.db.Exec(query,&profile.Id,&profile.Name,&profile.Phone_Number,&profile.Bio,&profile.Profile_Picture_Url)
   if err != nil{
     return errors.New("failed to create profile"+err.Error())
   }
   return nil
 }
 
-func (r* userRepository) GetProfile(phone_number ,string)(*domain.Profile,error){
+func (r* userRepository) GetProfile(id uint)(*domain.Profile,error){
   var profile domain.Profile
 
-  query := "SELECT * FROM profiles WHERE phone_number=$1"
-  row:= r.db.QueryRow(query,phone_number)
+  query := "SELECT * FROM profiles WHERE id=$1"
+  row:= r.db.QueryRow(query,id)
   err := row.Scan(&profile.Id,&profile.Name,&profile.Phone_Number,&profile.Bio,
         &profile.Profile_Picture_Url,&profile.CreatedAt,&profile.UpdatedAt)
   if err != nil {
@@ -89,7 +92,7 @@ func (r* userRepository) GetProfile(phone_number ,string)(*domain.Profile,error)
 
 func (r* userRepository) UpdateProfile(profile *domain.UpdateProfile) error{
   fields := []string{}
-  values := []interface{}
+  values := []interface{}{}
   paramIndex := 1
 
   if profile.Name != nil{
@@ -98,7 +101,7 @@ func (r* userRepository) UpdateProfile(profile *domain.UpdateProfile) error{
     paramIndex++
   }
   if profile.Bio != nil{
-    fields := append(fields,fmt.Sprintf("bio=$%d",paramIndex))
+    fields = append(fields,fmt.Sprintf("bio=$%d",paramIndex))
     values = append(values,*profile.Bio)
     paramIndex++
   }
@@ -109,13 +112,13 @@ func (r* userRepository) UpdateProfile(profile *domain.UpdateProfile) error{
   }
 
   if len(fields) == 0 {
-    return error.New("No fields to be update")
+    return errors.New("No fields to be update")
   }
   fields = append(fields, fmt.Sprintf("updated_at=$%d", paramIndex))
 	values = append(values, time.Now())
 	paramIndex++
   
-  values = append(values,profile.id)
+  values = append(values,profile.Id)
 
   query := fmt.Sprintf("UPDATE profiles SET %s WHERE id=$%d",strings.Join(fields,","),paramIndex)
   _,err := r.db.Exec(query,values...)

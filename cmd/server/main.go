@@ -31,6 +31,7 @@ func main(){
 
   http.HandleFunc("/signup",userHandler.SignUp)
   http.HandleFunc("/Login",userHandler.Login)
+  http.HandleFunc("/profile",userHandler.Profile)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))
