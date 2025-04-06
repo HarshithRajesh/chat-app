@@ -29,3 +29,9 @@ type UpdateProfile struct{
   Bio               *string
   ProfilePictureUrl *string
 }
+
+type Contact struct {
+  Id          uint
+  user_id     uint
+  contact_id  uint
+}
