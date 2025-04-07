@@ -86,3 +86,24 @@ func (h *UserHandler) Profile(w http.ResponseWriter,r *http.Request){
   w.Write([]byte("Profile Updated"))
 
 }
+
+func (h *UserHandler) Contact(w http.ResponseWriter,r *http.Request){
+  if r.Method != http.MethodPost{
+    http.Error(w,"Invalid request method",http.StatusMethodNotAllowed)
+    return
+  }
+
+  body,_ := ioutil.ReadAll(r.Body)
+  var req domain.ContactRequest
+  if req.UserID == 0 || req.Phone == ""{
+    http.Error(w,"user_id and phone_number are required",http.StatusBadRequest)
+    return
+  } 
+  if err := h.userService.Contact(req.UserID,req.Phone);err != nil{
+    http.Erro(w,err.Error(),http.StatusBadRequest)
+    return
+  }
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte("Contact updated"))
+}
