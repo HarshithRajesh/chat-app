@@ -32,6 +32,6 @@ type UpdateProfile struct{
 
 type Contact struct {
   Id          uint
-  user_id     uint
-  contact_id  uint
+  UserId     uint
+  ContactId  uint
 }

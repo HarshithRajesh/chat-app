@@ -87,5 +87,5 @@ func (s *userService) Contact(user_id uint,phone string) error{
     return errors.New("contact already exists")
   }
 
-  return s.repo.CreateContact(user_id,)
+  return s.repo.CreateContact(user_id,contact_id)
 }

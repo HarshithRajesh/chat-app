@@ -17,6 +17,8 @@ type UserRepository interface {
   GetProfile(id uint)(*domain.Profile,error)
   UpdateProfile(profile *domain.UpdateProfile) error
   GetContact(phone string)(id int,error) 
+  ContactAlreadyAdded(user_id,contact_id uint) error
+  CreateContact(user_id,contact_id uint)(*domain.Contact,error)
 }
 
 
@@ -143,3 +145,30 @@ func (r *userRepository) GetContact(phone string)(uint,error){
   }
   return id,nil
 } 
+
+func (r *userRepository) ContactAlreadyAdded(user_id,contact_id uint)(bool,error){
+  query:= "SELECT user_id,contact_id FROM contacts WHERE user_id=$1 AND contact_id=$2"
+
+  var exists int
+  row := r.db.QueryRow(query,user_id,contact_id).Scan(&exists)
+  if err != nil{
+    if err == sql.ErrNoRows{
+      return nil,nil
+    }
+    return nil,fmt.Errorf("failed to check the contact: %w",err)
+  }
+  return true,nil
+}
+
+func (r *userRepository) CreateContact(user_id,contact_id uint)(*domain.Contact,error){
+  query:="INSERT INTO contacts(user_id,contact_id) VALUES ($1,$2)"
+  _,err := r.db.Exec(query,&Contact.UserId,&Contact.ContactId)
+  if err != nil{
+    return errors.New("failed to create contact "+err.Error())
+  }
+  contact := &domain.Contact{
+    UserId: user_id,
+    ContactId : contact_id,
+  }
+  return contact,nil
+}
