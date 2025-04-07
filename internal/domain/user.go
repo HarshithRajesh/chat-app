@@ -37,6 +37,6 @@ type Contact struct {
 }
 
 type ContactRequest struct{
-  UserID uint   `json:"user_id"`
+  UserId uint   `json:"user_id"`
   Phone string `json:"phone_number"`
 }

@@ -93,13 +93,17 @@ func (h *UserHandler) Contact(w http.ResponseWriter,r *http.Request){
     return
   }
 
-  // body,_ := ioutil.ReadAll(r.Body)
   var req domain.ContactRequest
-  if req.UserID == 0 || req.Phone == ""{
+  err := json.NewDecoder(r.Body).Decode(&req)
+    if err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+  if req.UserId == 0 || req.Phone == ""{
     http.Error(w,"user_id and phone_number are required",http.StatusBadRequest)
     return
   } 
-  if err := h.userService.Contact(req.UserID,req.Phone);err != nil{
+  if err := h.userService.Contact(req.UserId,req.Phone);err != nil{
     http.Error(w,err.Error(),http.StatusBadRequest)
     return
   }
