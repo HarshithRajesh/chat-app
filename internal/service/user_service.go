@@ -12,6 +12,7 @@ type UserService interface {
   SignUp(user *domain.User) error 
   Login(user *domain.User) error
   Profile(profile *domain.Profile) error
+  Contact(contact *domain.Contact) error 
 }
 
 type userService struct {
@@ -66,4 +67,25 @@ func (s *userService) Profile(profile *domain.Profile)error{
   }
   return s.repo.UpdateProfile(updateInput)
 
+}
+
+func (s *userService) Contact(user_id uint,phone string) error{
+  contact_id,err := s.repo.GetContact(phone)
+  if err != nil {
+    return err 
+  }
+  
+  if user_id == contact_id{
+    return errors.New("cant add userself")
+  }
+
+  exists,err := s.repo.ContactAlreadyAdded(user_id,contact_id)
+  if err != nil{
+    return err 
+  }
+  if exists{
+    return errors.New("contact already exists")
+  }
+
+  return s.repo.CreateContact(user_id,)
 }
