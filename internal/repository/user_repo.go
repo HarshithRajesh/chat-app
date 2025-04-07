@@ -16,7 +16,9 @@ type UserRepository interface {
   CreateProfile(profile *domain.Profile) error
   GetProfile(id uint)(*domain.Profile,error)
   UpdateProfile(profile *domain.UpdateProfile) error
+  GetContact(phone string)(id int,error) 
 }
+
 
 type userRepository struct{
   db *sql.DB 
@@ -127,3 +129,17 @@ func (r* userRepository) UpdateProfile(profile *domain.UpdateProfile) error{
   }
   return nil
 }
+
+
+func (r *userRepository) GetContact(phone string)(uint,error){
+  query:="SELECT id FROM profiles WHERE phone_number=$1"
+  row := r.db.QueryRow(query,phone)
+  err := row.Scan(&id)
+  if err != nil{
+    if err == sql.ErrNoRows{
+      return 0,errors.New("Contact not found")
+    }
+    return 0,errors.New("Failed to fetch the contact "+err.Error())
+  }
+  return id,nil
+} 
