@@ -12,7 +12,7 @@ type UserService interface {
   SignUp(user *domain.User) error 
   Login(user *domain.User) error
   Profile(profile *domain.Profile) error
-  Contact(contact *domain.Contact) error 
+ Contact(user_id uint,phone string) error
 }
 
 type userService struct {

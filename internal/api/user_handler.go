@@ -93,14 +93,14 @@ func (h *UserHandler) Contact(w http.ResponseWriter,r *http.Request){
     return
   }
 
-  body,_ := ioutil.ReadAll(r.Body)
+  // body,_ := ioutil.ReadAll(r.Body)
   var req domain.ContactRequest
   if req.UserID == 0 || req.Phone == ""{
     http.Error(w,"user_id and phone_number are required",http.StatusBadRequest)
     return
   } 
   if err := h.userService.Contact(req.UserID,req.Phone);err != nil{
-    http.Erro(w,err.Error(),http.StatusBadRequest)
+    http.Error(w,err.Error(),http.StatusBadRequest)
     return
   }
 
