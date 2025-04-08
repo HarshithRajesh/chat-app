@@ -13,6 +13,7 @@ type UserService interface {
   Login(user *domain.User) error
   Profile(profile *domain.Profile) error
  Contact(user_id uint,phone string) error
+ViewContactList(user_id uint)([]domain.Profile,error)
 }
 
 type userService struct {
@@ -90,8 +91,8 @@ func (s *userService) Contact(user_id uint,phone string) error{
   return s.repo.CreateContact(user_id,contact_id)
 }
 
-func (s *userService) ViewContactList(user_id uint)([]domain.profile,error){
-  contact_ids,err := r.repo.GetContactId(user_id)
+func (s *userService) ViewContactList(user_id uint)([]domain.Profile,error){
+  contact_ids,err := s.repo.GetContactId(user_id)
   if err != nil{
     return nil,err 
   }

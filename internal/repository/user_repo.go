@@ -196,7 +196,7 @@ func (r *userRepository) GetContactId(user_id uint)([]uint,error){
 }
 
 func (r *userRepository) GetProfileId(ids []uint)([]domain.Profile,error){
-  query:= 'SELECT id,name,phone_number,bio,profile_picture_url FROM profiles WHERE id=ANY($1)'
+  query:= "SELECT id,name,phone_number,bio,profile_picture_url FROM profiles WHERE id=ANY($1)"
   rows,err :=r.db.Query(query,pq.Array(ids))
   if err != nil{
     return nil,err 

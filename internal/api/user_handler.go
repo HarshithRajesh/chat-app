@@ -123,11 +123,17 @@ func (h *UserHandler) ViewContact(w http.ResponseWriter,r *http.Request){
    http.Error(w,"Invalid request body",http.StatusBadRequest)
    return
   }
-  if err := h.userService.ViewContactList(req.UserID);err != nil{
+  if req.UserId == 0{
+    http.Error(w,"User Id is required",http.StatusBadRequest)
+    return
+  }
+  profiles,err := h.userService.ViewContactList(req.UserId);
+  if err != nil{
     http.Error(w,err.Error(),http.StatusBadRequest)
     return
   }
-
+  w.Header().Set("Content-Type", "application/json")
+  json.NewEncoder(w).Encode(profiles)
   w.WriteHeader(http.StatusOK)
   w.Write([]byte("Contact List"))
 }
