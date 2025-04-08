@@ -33,6 +33,7 @@ func main(){
   http.HandleFunc("/Login",userHandler.Login)
   http.HandleFunc("/profile",userHandler.Profile)
   http.HandleFunc("/contact",userHandler.Contact)
+  http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))

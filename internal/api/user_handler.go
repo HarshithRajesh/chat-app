@@ -111,3 +111,23 @@ func (h *UserHandler) Contact(w http.ResponseWriter,r *http.Request){
   w.WriteHeader(http.StatusOK)
   w.Write([]byte("Contact updated"))
 }
+
+func (h *UserHandler) ViewContact(w http.ResponseWriter,r *http.Request){
+  if r.Method != http.MethodGet{
+    http.Error(w,"Invalid request method",http.StatusMethodNotAllowed)
+    return
+  }
+  var req domain.ContactRequest
+  err := json.NewDecoder(r.Body).Decode(&req)
+  if err != nil{
+   http.Error(w,"Invalid request body",http.StatusBadRequest)
+   return
+  }
+  if err := h.userService.ViewContactList(req.UserID);err != nil{
+    http.Error(w,err.Error(),http.StatusBadRequest)
+    return
+  }
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte("Contact List"))
+}

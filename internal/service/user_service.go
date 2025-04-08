@@ -89,3 +89,16 @@ func (s *userService) Contact(user_id uint,phone string) error{
 
   return s.repo.CreateContact(user_id,contact_id)
 }
+
+func (s *userService) ViewContactList(user_id uint)([]domain.profile,error){
+  contact_ids,err := r.repo.GetContactId(user_id)
+  if err != nil{
+    return nil,err 
+  }
+  profile,err := s.repo.GetProfileId(contact_ids)
+  if err != nil{
+    return nil,err 
+  }
+  return profile,err
+
+}

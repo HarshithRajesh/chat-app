@@ -7,6 +7,7 @@ import (
   "fmt"
   "time"
   "strings"
+  "github.com/lib/pq"
 )
 
 type UserRepository interface {
@@ -19,6 +20,8 @@ type UserRepository interface {
   GetContact(phone string)(uint,error) 
   ContactAlreadyAdded(user_id,contact_id uint)(bool,error)
   CreateContact(user_id,contact_id uint)error
+  GetProfileId(ids []uint)([]domain.Profile,error)
+  GetContactId(user_id uint)([]uint,error)
 }
 
 
@@ -167,9 +170,54 @@ func (r *userRepository) CreateContact(user_id,contact_id uint)error{
   if err != nil{
     return errors.New("failed to create contact "+err.Error())
   }
-  // contact := &domain.Contact{
-  //   UserId: user_id,
-  //   ContactId : contact_id,
-  // }
   return nil
 }
+
+func (r *userRepository) GetContactId(user_id uint)([]uint,error){
+  query:="SELECT contact_id FROM contacts WHERE user_id=$1"
+  var contacts_list []uint
+  rows,err := r.db.Query(query,user_id)
+  if err != nil{
+    return nil,err 
+  }
+  defer rows.Close()
+  for rows.Next(){
+    var contact uint
+    if err:=rows.Scan(&contact);err != nil{
+      return nil,err 
+    }
+    contacts_list = append(contacts_list,contact)
+  }
+  if len(contacts_list)==0{
+    return nil,errors.New("no contacts in your list ")
+  }
+  return contacts_list,nil
+
+}
+
+func (r *userRepository) GetProfileId(ids []uint)([]domain.Profile,error){
+  query:= 'SELECT id,name,phone_number,bio,profile_picture_url FROM profiles WHERE id=ANY($1)'
+  rows,err :=r.db.Query(query,pq.Array(ids))
+  if err != nil{
+    return nil,err 
+  }
+  defer rows.Close()
+
+  var profiles []domain.Profile
+  for rows.Next(){
+    var profile domain.Profile
+    err:= rows.Scan(
+      &profile.Id,
+      &profile.Name,
+      &profile.Phone_Number,
+      &profile.Bio,
+      &profile.Profile_Picture_Url,
+    )
+    if err != nil{
+      return nil,err
+    }
+    profiles = append(profiles,profile)
+  }
+  return profiles,nil
+}
+
