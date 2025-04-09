@@ -29,11 +29,17 @@ func main(){
   userService := service.NewUserService(userRepo)
   userHandler := api.NewUserHandler(userService)
 
+
+  chatRepo := repository.NewChatRepository(db)
+  chatService := service.NewChatService(chatRepo)
+  chatHandler := api.NewChatHandler(chatService)
+
   http.HandleFunc("/signup",userHandler.SignUp)
   http.HandleFunc("/Login",userHandler.Login)
   http.HandleFunc("/profile",userHandler.Profile)
   http.HandleFunc("/contact",userHandler.Contact)
   http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
+  http.HandleFunc("/user/message",userHandler.SendMessage)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))

@@ -12,8 +12,8 @@ type UserService interface {
   SignUp(user *domain.User) error 
   Login(user *domain.User) error
   Profile(profile *domain.Profile) error
- Contact(user_id uint,phone string) error
-ViewContactList(user_id uint)([]domain.Profile,error)
+  Contact(user_id uint,phone string) error
+  ViewContactList(user_id uint)([]domain.Profile,error)
 }
 
 type userService struct {

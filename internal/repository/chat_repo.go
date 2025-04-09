@@ -21,15 +21,17 @@ func NewChatRepository (db *sql.DB) ChatRepository{
 
 func (r *chatRepository) SaveMessage(msg *domain.Message)error{
   query := "INSERT INTO messages(sender_id,receiver_id,content) VALUES ($1,$2,$3)"
-  _,err := r.db.Exec(query,msg.SenderId,msg.ReceiverID,Content)
+  _,err := r.db.Exec(query,msg.SenderId,msg.ReceiverID,msg.Content)
   if err != nil{
-    return errors.New("Failed to send the message"+err.Error())
+    return errors.New("Failed to send the message ->"+err.Error())
   }
   return nil
 }
 
 func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
-  query := "SELECT content FROM messages WHERE sender_id = $1 and receiver_id=$2"
+  query := `SELECT id,sender_id,receiver_id,content,created_at FROM messages
+            WHERE (sender_id = $1 AND receiver_id=$2) or (sender_id=$2 AND receiver_id=$1)
+            ORDER BY created_at ASC`
   rows,err := r.db.Query(query,user1,user2)
   if err != nil{
     return nil,err
@@ -40,7 +42,11 @@ func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
   for rows.Next(){
     var message domain.Message
     err := rows.Scan(
-      &message.Content
+      &message.Id,
+      &message.SenderId,
+      &message.ReceiverID,
+      &message.Content,
+      &message.CreatedAT,
     )
     if err != nil{
       return nil,err
