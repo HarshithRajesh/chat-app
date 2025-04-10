@@ -3,6 +3,7 @@ package repository
 import (
   "database/sql"
   "errors"
+  "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
 )
 
@@ -20,6 +21,8 @@ func NewChatRepository (db *sql.DB) ChatRepository{
 }
 
 func (r *chatRepository) SaveMessage(msg *domain.Message)error{
+
+// log.Printf("Sending message from %d to %d", msg.SenderId, msg.ReceiverId)
   query := "INSERT INTO messages(sender_id,receiver_id,content) VALUES ($1,$2,$3)"
   _,err := r.db.Exec(query,msg.SenderId,msg.ReceiverId,msg.Content)
   if err != nil{
