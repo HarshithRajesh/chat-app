@@ -1,9 +1,9 @@
-import api
+package api
 
-import(
+import (
   "encoding/json"
   "net/http"
-  "io/ioutil"
+  // "io/ioutil"
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/HarshithRajesh/app-chat/internal/service"
 )
@@ -29,7 +29,7 @@ func(h *ChatHandler) SendMessage(w http.ResponseWriter,r *http.Request){
     return
   }
 
-  if err := h.chatService.SendMessage(msg);err != nil{
+  if err := h.chatService.SendMessage(&req);err != nil{
     http.Error(w,err.Error(),http.StatusBadRequest)
     return
   }

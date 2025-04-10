@@ -1,14 +1,14 @@
 package service
 
 import (
-  "errors"
+  // "errors"
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/HarshithRajesh/app-chat/internal/repository"
 )
 
 type ChatService interface {
   SendMessage(msg *domain.Message)error
-  GetMessage(user1,user2)([]domain.Message,errorr)
+  // GetMessage(user1,user2)([]domain.Message,errorr)
 }
 
 type chatService struct{
@@ -19,7 +19,7 @@ func NewChatService(repo repository.ChatRepository) ChatService{
   return &chatService{repo}
 }
 
-func SendMessage(msg *domain.Message)error{
+func (s *chatService) SendMessage(msg *domain.Message)error{
   err:=s.repo.SaveMessage(msg)
   if err != nil{
     return err

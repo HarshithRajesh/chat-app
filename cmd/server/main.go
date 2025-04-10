@@ -39,7 +39,7 @@ func main(){
   http.HandleFunc("/profile",userHandler.Profile)
   http.HandleFunc("/contact",userHandler.Contact)
   http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
-  http.HandleFunc("/user/message",userHandler.SendMessage)
+  http.HandleFunc("/user/message",chatHandler.SendMessage)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
   log.Fatal(http.ListenAndServe(":8080",nil))

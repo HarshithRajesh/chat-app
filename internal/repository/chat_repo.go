@@ -21,7 +21,7 @@ func NewChatRepository (db *sql.DB) ChatRepository{
 
 func (r *chatRepository) SaveMessage(msg *domain.Message)error{
   query := "INSERT INTO messages(sender_id,receiver_id,content) VALUES ($1,$2,$3)"
-  _,err := r.db.Exec(query,msg.SenderId,msg.ReceiverID,msg.Content)
+  _,err := r.db.Exec(query,msg.SenderId,msg.ReceiverId,msg.Content)
   if err != nil{
     return errors.New("Failed to send the message ->"+err.Error())
   }
@@ -44,9 +44,9 @@ func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
     err := rows.Scan(
       &message.Id,
       &message.SenderId,
-      &message.ReceiverID,
+      &message.ReceiverId,
       &message.Content,
-      &message.CreatedAT,
+      &message.CreatedAt,
     )
     if err != nil{
       return nil,err
