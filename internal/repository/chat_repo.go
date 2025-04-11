@@ -3,7 +3,7 @@ package repository
 import (
   "database/sql"
   "errors"
-  "log"
+  // "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
 )
 
