@@ -26,10 +26,10 @@ func ConnectDB() *sql.DB {
 
 var RedisClient *redis.Client
 
-func ConnectRedisDB(){
-  RedisClient = redis.Client(&redis.Options{
+func ConnectRedisDB() (*redis.Client, error){
+  RedisClient = redis.NewClient(&redis.Options{
     Addr :"localhost:6379",
-    Password : 0;
+    Password : "",
     DB : 0,
     Protocol : 2,
   })
@@ -41,4 +41,5 @@ func ConnectRedisDB(){
   }else {
     log.Println("Connected to Redis")
   }
+  return RedisClient,nil
 }

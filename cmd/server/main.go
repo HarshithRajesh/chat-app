@@ -25,13 +25,18 @@ func handler(w http.ResponseWriter, r *http.Request){
 
 func main(){
   db := config.ConnectDB()
+  redisClient,err := config.ConnectRedisDB()
+  if err != nil{
+    fmt.Println("Redis client is not initialized")
+  }
+  defer redisClient.Close()
   userRepo := repository.NewUserRepository(db)
   userService := service.NewUserService(userRepo)
   userHandler := api.NewUserHandler(userService)
 
 
   chatRepo := repository.NewChatRepository(db)
-  chatService := service.NewChatService(chatRepo)
+  chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
 
   http.HandleFunc("/signup",userHandler.SignUp)

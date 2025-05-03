@@ -5,7 +5,7 @@ import (
   "errors"
   // "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
-)
+ )
 
 type ChatRepository interface{
    SaveMessage(msg *domain.Message) error
@@ -28,7 +28,9 @@ func (r *chatRepository) SaveMessage(msg *domain.Message)error{
   if err != nil{
     return errors.New("Failed to send the message ->"+err.Error())
   }
+  
   return nil
+  
 }
 
 func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
