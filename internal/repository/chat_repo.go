@@ -60,3 +60,7 @@ func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
   }
   return messages,nil
 }
+
+func RedisRead(){
+
+}
