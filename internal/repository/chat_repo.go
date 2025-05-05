@@ -5,15 +5,20 @@ import (
   "errors"
   // "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
+  "github.com/redis/go-redis/v9"
+  "fmt"
  )
 
 type ChatRepository interface{
    SaveMessage(msg *domain.Message) error
    GetMessage(user1,user2 uint)([]domain.Message,error)
+   ReadMessageFromStream(ctx context.context,redisClient *redis.Client,streamName string,
+                            startId string,count int64)([]redis.XStream,error)
 }
 
 type chatRepository struct{
   db *sql.DB 
+
 }
 
 func NewChatRepository (db *sql.DB) ChatRepository{
@@ -61,6 +66,19 @@ func (r *chatRepository) GetMessage(user1,user2 uint)([]domain.Message,error){
   return messages,nil
 }
 
-func RedisRead(){
+func ReadMessageFromStream(ctx context.Context,redisClient *redis.Client,streamName string,
+                            startID string,count int64)([]redis.Xstream,error){
+  res,err:= redisClient.XRead(ctx,&redis.XReadArgs{
+    Streams: []string{streamName,startID},
+    Count: count,
+  }).Result()
 
+  if err != nil{
+    if err == redis.Nil{
+      return []redis.XStream{},nil
+    }
+    return nil,err
+  }
+  fmt.Println(res)
+  return res,nil
 }
