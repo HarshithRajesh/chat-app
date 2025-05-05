@@ -40,12 +40,21 @@ func main(){
   chatRepo := repository.NewChatRepository(db)
   chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
-  message,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
-  if err != nil{
+
+  messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
+    if err != nil{
     fmt.Printf("Error reading from the stream: %v\n",err)
   }else{
-    fmt.Printf("Read message: %+v\n",message)
+    for _,stream := range messages{
+      for _,msg := range stream.Messages{
+        fmt.Printf("Message Id : %s\n",msg.ID)
+        fmt.Println("Values:")
+        for field,value := range msg.Values{
+          fmt.Printf("  %s: %v\n",field,value)
+        }
+      }
   }
+      }
   http.HandleFunc("/signup",userHandler.SignUp)
   http.HandleFunc("/Login",userHandler.Login)
   http.HandleFunc("/profile",userHandler.Profile)

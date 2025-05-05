@@ -6,7 +6,7 @@ import (
   // "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/redis/go-redis/v9"
-  "fmt"
+  // "fmt"
   "context"
  )
 
@@ -80,6 +80,6 @@ func ReadMessageFromStream(ctx context.Context,redisClient *redis.Client,streamN
     }
     return nil,err
   }
-  fmt.Println(res)
+  
   return res,nil
 }
