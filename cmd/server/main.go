@@ -41,6 +41,18 @@ func main(){
   chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
 
+
+  _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$","MKSTREAM").Result()
+  if err != nil{
+    panic(err)
+  } else if err == nil{
+    fmt.Println("Redis Consumer group chat_processor created on stream 'chat_stream")
+  }else{
+    fmt.Println("Redis group already created")
+  }
+
+
+
   messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
     if err != nil{
     fmt.Printf("Error reading from the stream: %v\n",err)
