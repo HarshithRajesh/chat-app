@@ -40,7 +40,7 @@ func main(){
   chatRepo := repository.NewChatRepository(db)
   chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
-
+//a
 
   _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$","MKSTREAM").Result()
   if err != nil{
