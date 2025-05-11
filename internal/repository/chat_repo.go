@@ -8,6 +8,7 @@ import (
   "github.com/redis/go-redis/v9"
   // "fmt"
   "context"
+  "time"
  )
 
 type ChatRepository interface{
@@ -81,5 +82,24 @@ func ReadMessageFromStream(ctx context.Context,redisClient *redis.Client,streamN
     return nil,err
   }
   
+  return res,nil
+}
+
+func ReadMessagesFromGroup(ctx context.Context,redisClient *redis.Client,streamName string,groupName string,
+                                consumerName string,count int64,block time.Duration)([]redis.XStream,error){
+  res,err := redisClient.XReadGroup(ctx,&redis.XReadGroupArgs{
+    Streams: []string{streamName,">"},
+    Group:  groupName,
+    Consumer: consumerName,
+    Block : block,
+    Count:  count,
+  }).Result()
+
+  if err != nil{
+    if err == redis.Nil{
+      return []redis.XStream{},nil,
+    }
+    return nil,err
+  }
   return res,nil
 }

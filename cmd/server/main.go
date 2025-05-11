@@ -42,11 +42,12 @@ func main(){
   chatHandler := api.NewChatHandler(chatService)
 //add
 
-  _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$","MKSTREAM").Result()
+  _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil{
-    panic(err)
-  } else if err == nil{
-    fmt.Println("Redis Consumer group chat_processor created on stream 'chat_stream")
+   if err.Error() != "BUSYGROUP Consumer Group name already exists" {
+        log.Fatalf("Error creating Redis Consumer Group: %v", err) 
+    }
+       fmt.Println("Redis Consumer group chat_processor created on stream 'chat_stream")
   }else{
     fmt.Println("Redis group already created")
   }
