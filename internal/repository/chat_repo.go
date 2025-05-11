@@ -97,9 +97,20 @@ func ReadMessagesFromGroup(ctx context.Context,redisClient *redis.Client,streamN
 
   if err != nil{
     if err == redis.Nil{
-      return []redis.XStream{},nil,
+      return []redis.XStream{},nil
     }
     return nil,err
   }
   return res,nil
+}
+
+func AcknowledgeMessages(ctx context.Context,redisClient *redis.Client,streamName string,
+                          groupName string,messageIds []string)(count int64,error){
+  res,err := redisClient.XAck(ctx,streamName,groupName,messageIds...).Result()
+  if err != nil{
+    fmt.Println(err)
+    return 0,err
+  }
+  return res,nil
+
 }
