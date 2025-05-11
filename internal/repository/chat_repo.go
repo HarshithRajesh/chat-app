@@ -6,7 +6,7 @@ import (
   // "log"
   "github.com/HarshithRajesh/app-chat/internal/domain"
   "github.com/redis/go-redis/v9"
-  // "fmt"
+  "fmt"
   "context"
   "time"
  )
@@ -104,8 +104,7 @@ func ReadMessagesFromGroup(ctx context.Context,redisClient *redis.Client,streamN
   return res,nil
 }
 
-func AcknowledgeMessages(ctx context.Context,redisClient *redis.Client,streamName string,
-                          groupName string,messageIds []string)(count int64,error){
+func AcknowledgeMessages(ctx context.Context,redisClient *redis.Client,streamName string,groupName string,messageIds []string)(count int64,err error){
   res,err := redisClient.XAck(ctx,streamName,groupName,messageIds...).Result()
   if err != nil{
     fmt.Println(err)

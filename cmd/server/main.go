@@ -10,6 +10,9 @@ import (
   "github.com/HarshithRajesh/app-chat/internal/repository"
   "github.com/HarshithRajesh/app-chat/internal/service"
   "context"
+  "os"
+  "time"
+  "strings"
 )
 type Response struct{
   Message string `json:"message"`
@@ -43,17 +46,37 @@ func main(){
 //add
 
   _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$").Result()
-  if err != nil{
-   if err.Error() != "BUSYGROUP Consumer Group name already exists" {
-        log.Fatalf("Error creating Redis Consumer Group: %v", err) 
+  if err != nil {
+    if strings.Contains(err.Error(), "BUSYGROUP Consumer Group name already exists") {
+        fmt.Println("Redis group already exists")
+    } else {
+        log.Fatalf("Error creating Redis Consumer Group: %v", err)
     }
-       fmt.Println("Redis Consumer group chat_processor created on stream 'chat_stream")
-  }else{
-    fmt.Println("Redis group already created")
+  } else {
+    fmt.Println("Redis Consumer group created on stream 'chat_stream'")
   }
+  // if err != nil{
+  //  if err.Error() != "BUSYGROUP Consumer Group name  already exists" {
+  //       log.Fatalf("Error creating Redis Consumer Group: %v", err) 
+  //   }
+  //      fmt.Println("Redis Consumer group  created on stream 'chat_stream")
+  // }else{
+  //   fmt.Println("Redis group already created")
+  // }
 
+  appCtx ,cancel:= context.WithCancel(context.Background())
+  defer cancel()
+  hostname,_ := os.Hostname()
+  consumerName := fmt.Sprintf("consumer-%s-%d",hostname,os.Getpid())
+  readCount := int64(10)
+  blockDuration := time.Duration(0)
 
+  go service.StartMessageConsumer(appCtx,redisClient,"chat_stream","chat_processor",consumerName,readCount,blockDuration)
+ 
+  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+C to stop)...")
+	<-appCtx.Done()
 
+  log.Println("Shutdown signal received. Main goroutine unblocked. Application stopping.")
   messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
     if err != nil{
     fmt.Printf("Error reading from the stream: %v\n",err)
