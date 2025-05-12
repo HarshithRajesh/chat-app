@@ -13,6 +13,8 @@ import (
   "os"
   "time"
   "strings"
+  "os/signal"
+  "syscall"
 )
 type Response struct{
   Message string `json:"message"`
@@ -55,17 +57,27 @@ func main(){
   } else {
     fmt.Println("Redis Consumer group created on stream 'chat_stream'")
   }
-  // if err != nil{
-  //  if err.Error() != "BUSYGROUP Consumer Group name  already exists" {
-  //       log.Fatalf("Error creating Redis Consumer Group: %v", err) 
-  //   }
-  //      fmt.Println("Redis Consumer group  created on stream 'chat_stream")
-  // }else{
-  //   fmt.Println("Redis group already created")
-  // }
+  appCtx ,cancelFunc:= context.WithCancel(context.Background())
 
-  appCtx ,cancel:= context.WithCancel(context.Background())
-  defer cancel()
+	// Set up a channel to listen for OS signals (like Ctrl+C)
+	sigChan := make(chan os.Signal, 1) // Create the channel
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM) // Tell Go to send SIGINT/SIGTERM here
+
+	// Start a separate goroutine to handle incoming signals
+	go func() {
+		sig := <-sigChan // This line will block until a signal arrives on sigChan
+
+		// Once a signal arrives, this code runs:
+		log.Printf("Received signal %v. Initiating graceful shutdown...", sig)
+
+		cancelFunc() // <--- THIS LINE MUST BE CALLED
+
+		// Optional: Close the signal channel after cancelling
+		// close(sigChan)
+	}()
+
+	log.Println("Signal handling configured. Press Ctrl+C to shut down gracefully.")
+  // defer cancel()
   hostname,_ := os.Hostname()
   consumerName := fmt.Sprintf("consumer-%s-%d",hostname,os.Getpid())
   readCount := int64(10)
@@ -73,24 +85,24 @@ func main(){
 
   go service.StartMessageConsumer(appCtx,redisClient,"chat_stream","chat_processor",consumerName,readCount,blockDuration)
  
-  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+C to stop)...")
+  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+T to stop)...")
 	<-appCtx.Done()
 
   log.Println("Shutdown signal received. Main goroutine unblocked. Application stopping.")
-  messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
-    if err != nil{
-    fmt.Printf("Error reading from the stream: %v\n",err)
-  }else{
-    for _,stream := range messages{
-      for _,msg := range stream.Messages{
-        fmt.Printf("Message Id : %s\n",msg.ID)
-        fmt.Println("Values:")
-        for field,value := range msg.Values{
-          fmt.Printf("  %s: %v\n",field,value)
-        }
-      }
-  }
-      }
+  // messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
+  //   if err != nil{
+  //   fmt.Printf("Error reading from the stream: %v\n",err)
+  // }else{
+  //   for _,stream := range messages{
+  //     for _,msg := range stream.Messages{
+  //       fmt.Printf("Message Id : %s\n",msg.ID)
+  //       fmt.Println("Values:")
+  //       for field,value := range msg.Values{
+  //         fmt.Printf("  %s: %v\n",field,value)
+  //       }
+  //     }
+  // }
+  //     }
   http.HandleFunc("/signup",userHandler.SignUp)
   http.HandleFunc("/Login",userHandler.Login)
   http.HandleFunc("/profile",userHandler.Profile)
