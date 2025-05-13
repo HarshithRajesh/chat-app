@@ -37,6 +37,15 @@ func main(){
     fmt.Println("Redis client is not initialized")
   }
   defer redisClient.Close()
+
+ server := &http.Server{
+    Addr :  ":8080",
+    Handler : nil,
+    ReadTimeout:  10* time.Second,
+    WriteTimeout: 10* time.Second,
+    MaxHeaderBytes: 1<<20,
+  }
+
   userRepo := repository.NewUserRepository(db)
   userService := service.NewUserService(userRepo)
   userHandler := api.NewUserHandler(userService)
@@ -46,6 +55,24 @@ func main(){
   chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
 //add
+go func(){
+    log.Println("Server running in the port :8080")
+    err := server.ListenAndServe()
+    if err != nil && err != http.ErrServerClosed{
+      log.Printf("Error while running the server: %v",err)
+    }
+    log.Println("Http Server closed")
+  }()
+  http.HandleFunc("/signup",userHandler.SignUp)
+  http.HandleFunc("/Login",userHandler.Login)
+  http.HandleFunc("/profile",userHandler.Profile)
+  http.HandleFunc("/contact",userHandler.Contact)
+  http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
+  http.HandleFunc("/user/message",chatHandler.SendMessage)
+  http.HandleFunc("/user/message/history",chatHandler.GetMessage)
+  http.HandleFunc("/health",health)
+  http.HandleFunc("/",handler)
+
 
   _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil {
@@ -59,23 +86,18 @@ func main(){
   }
   appCtx ,cancelFunc:= context.WithCancel(context.Background())
 
-	// Set up a channel to listen for OS signals (like Ctrl+C)
 	sigChan := make(chan os.Signal, 1) // Create the channel
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM) // Tell Go to send SIGINT/SIGTERM here
 
-	// Start a separate goroutine to handle incoming signals
 	go func() {
-		sig := <-sigChan // This line will block until a signal arrives on sigChan
+		sig := <-sigChan
 
-		// Once a signal arrives, this code runs:
 		log.Printf("Received signal %v. Initiating graceful shutdown...", sig)
 
-		cancelFunc() // <--- THIS LINE MUST BE CALLED
+		cancelFunc()
 
-		// Optional: Close the signal channel after cancelling
-		// close(sigChan)
 	}()
-
+ 
 	log.Println("Signal handling configured. Press Ctrl+C to shut down gracefully.")
   // defer cancel()
   hostname,_ := os.Hostname()
@@ -85,7 +107,7 @@ func main(){
 
   go service.StartMessageConsumer(appCtx,redisClient,"chat_stream","chat_processor",consumerName,readCount,blockDuration)
  
-  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+T to stop)...")
+  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+C to stop)...")
 	<-appCtx.Done()
 
   log.Println("Shutdown signal received. Main goroutine unblocked. Application stopping.")
@@ -103,14 +125,9 @@ func main(){
   //     }
   // }
   //     }
-  http.HandleFunc("/signup",userHandler.SignUp)
-  http.HandleFunc("/Login",userHandler.Login)
-  http.HandleFunc("/profile",userHandler.Profile)
-  http.HandleFunc("/contact",userHandler.Contact)
-  http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
-  http.HandleFunc("/user/message",chatHandler.SendMessage)
-  http.HandleFunc("/user/message/history",chatHandler.GetMessage)
-  http.HandleFunc("/health",health)
-  http.HandleFunc("/",handler)
-  log.Fatal(http.ListenAndServe(":8080",nil))
+  
+ 
+
+ 
+
 }
