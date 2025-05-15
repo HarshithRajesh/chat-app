@@ -74,7 +74,7 @@ go func(){
   http.HandleFunc("/",handler)
 
 
-  _,err = redisClient.XGroupCreate(ctx,"chat_stream","chat_processor","$").Result()
+  _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil {
     if strings.Contains(err.Error(), "BUSYGROUP Consumer Group name already exists") {
         fmt.Println("Redis group already exists")

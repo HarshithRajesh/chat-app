@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { signup } from "../services/api";
 
 function Signup() {
 
@@ -32,9 +33,9 @@ function Signup() {
     }
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      console.log('Signing Up with:', { username, email, password });
+      const responseData = await signup({ username, email, password });
+      console.log('Signing Up with:', responseData);
+      navigate('/login');
     } catch (err) {
       setError('Signup failed , Please try again!');
       console.log("Signup Error", err);

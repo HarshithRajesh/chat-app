@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { login } from "../services/api";
 
 function Login() {
 
@@ -25,8 +25,8 @@ function Login() {
     setLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Loging in with', { email, password });
+      const responseData = await login({ email, password });
+      console.log('Loging in with', responseData);
       navigate('/chat');
     } catch (err) {
       setError('Loging in failed');
