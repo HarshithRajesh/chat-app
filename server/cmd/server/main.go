@@ -15,6 +15,7 @@ import (
   "strings"
   "os/signal"
   "syscall"
+  "github.com/gorilla/websockets"
 )
 type Response struct{
   Message string `json:"message"`
@@ -26,7 +27,13 @@ func health(w http.ResponseWriter, r *http.Request){
 }
 
 func handler(w http.ResponseWriter, r *http.Request){
-  fmt.Fprintf(w,"Hi,there, Welocome to my chaat ")
+  upgrader.CheckOrigin = func(r *http.Request) bool{return true}
+
+  ws,err := upgrader.Upgrade(w,r,nil)
+  if err != nil{
+    log.Prinltn(err)
+  }
+  // fmt.Fprintf(w,"Hi,there, Welocome to my chaat ")
 }
 
 func main(){
@@ -37,8 +44,13 @@ func main(){
     fmt.Println("Redis client is not initialized")
   }
   defer redisClient.Close()
-
- server := &http.Server{
+  
+  var upgrader = websockets.Upgrader{
+    ReadBufferSize : 1024,
+    WriteBufferSize : 1024,
+  }
+  
+  server := &http.Server{
     Addr :  ":8080",
     Handler : nil,
     ReadTimeout:  10* time.Second,
