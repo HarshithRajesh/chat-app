@@ -15,7 +15,7 @@ import (
   "strings"
   "os/signal"
   "syscall"
-  "github.com/gorilla/websockets"
+  "github.com/gorilla/websocket"
 )
 type Response struct{
   Message string `json:"message"`
@@ -25,17 +25,36 @@ func health(w http.ResponseWriter, r *http.Request){
   response := Response{Message: "Hi Welcome to Chaat"}
   json.NewEncoder(w).Encode(response)
 }
+var upgrader = websocket.Upgrader{
+    ReadBufferSize : 1024,
+    WriteBufferSize : 1024,
+  }
+func reader(conn *websocket.Conn){
+  for {
+    messageType,p,err := conn.ReadMessage()
+    if err !=  nil{
+      log.Println(err)
+      return
+    }
+    fmt.Println(string(p))
+    if err := conn.WriteMessage(messageType,p);err != nil{
+      log.Println(err)
+      return
+    }
+  }
+}
+
 
 func handler(w http.ResponseWriter, r *http.Request){
   upgrader.CheckOrigin = func(r *http.Request) bool{return true}
 
   ws,err := upgrader.Upgrade(w,r,nil)
   if err != nil{
-    log.Prinltn(err)
+    log.Println(err)
   }
-  // fmt.Fprintf(w,"Hi,there, Welocome to my chaat ")
+  log.Println("Hi,there, Welocome to my chaat ")
+  reader(ws)
 }
-
 func main(){
   db := config.ConnectDB()
   ctx := context.Background()
@@ -45,10 +64,7 @@ func main(){
   }
   defer redisClient.Close()
   
-  var upgrader = websockets.Upgrader{
-    ReadBufferSize : 1024,
-    WriteBufferSize : 1024,
-  }
+  
   
   server := &http.Server{
     Addr :  ":8080",
