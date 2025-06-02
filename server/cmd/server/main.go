@@ -52,6 +52,21 @@ func handler(w http.ResponseWriter, r *http.Request){
   if err != nil{
     log.Println(err)
   }
+  defer ws.Close()
+  // for {
+  //       messageType, p, err := conn.ReadMessage()
+  //       if err != nil {
+  //           log.Printf("Error reading WebSocket message: %v", err)
+  //           break // Exit the loop on error (e.g., client disconnected)
+  //       }
+  //       log.Printf("Received WebSocket message (type %d): %s", messageType, p)
+  //
+  //       // Example: Echo message back (for testing)
+  //       if err := conn.WriteMessage(messageType, p); err != nil {
+  //           log.Printf("Error writing WebSocket message: %v", err)
+  //           break
+  //       }
+  //   }
   log.Println("Hi,there, Welocome to my chaat ")
   reader(ws)
 }
