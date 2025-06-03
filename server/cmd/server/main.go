@@ -28,6 +28,7 @@ func health(w http.ResponseWriter, r *http.Request){
 var upgrader = websocket.Upgrader{
     ReadBufferSize : 1024,
     WriteBufferSize : 1024,
+    CheckOrigin: func(r *http.Request) bool{return true},
   }
 func reader(conn *websocket.Conn){
   for {
@@ -44,6 +45,40 @@ func reader(conn *websocket.Conn){
   }
 }
 
+func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
+	// Upgrading the http connection to websocket
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("WebSocket upgrade error:", err)
+		return
+	}
+	defer ws.Close() 
+
+	log.Println("Hello World WebSocket client connected.")
+
+	for {
+	err: Any error that occurred during reading.
+		messageType, p, err := ws.ReadMessage()
+		if err != nil {
+				log.Printf("Error reading message from client: %v\n", err)
+			} else {
+				log.Printf("Client disconnected or error: %v\n", err)
+			}
+			break // Exit the loop on error or client disconnect.
+		}
+
+		fmt.Printf("Received message: %s (Type: %d)\n", string(p), messageType)
+
+		helloWorldMessage := []byte("Hello World!")
+
+		if err := ws.WriteMessage(websocket.TextMessage, helloWorldMessage); err != nil {
+			log.Println("Error writing 'Hello World!' message:", err)
+			break // Exit the loop if writing fails.
+		}
+		log.Println("Sent 'Hello World!' response.")
+	}
+	log.Println("Hello World WebSocket client disconnected.")
+}
 
 func handler(w http.ResponseWriter, r *http.Request){
   upgrader.CheckOrigin = func(r *http.Request) bool{return true}
@@ -53,20 +88,6 @@ func handler(w http.ResponseWriter, r *http.Request){
     log.Println(err)
   }
   defer ws.Close()
-  // for {
-  //       messageType, p, err := conn.ReadMessage()
-  //       if err != nil {
-  //           log.Printf("Error reading WebSocket message: %v", err)
-  //           break // Exit the loop on error (e.g., client disconnected)
-  //       }
-  //       log.Printf("Received WebSocket message (type %d): %s", messageType, p)
-  //
-  //       // Example: Echo message back (for testing)
-  //       if err := conn.WriteMessage(messageType, p); err != nil {
-  //           log.Printf("Error writing WebSocket message: %v", err)
-  //           break
-  //       }
-  //   }
   log.Println("Hi,there, Welocome to my chaat ")
   reader(ws)
 }
@@ -116,6 +137,7 @@ go func(){
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
 
+  http.HandleFunc("/ws", helloWorldHandler)
 
   _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil {
