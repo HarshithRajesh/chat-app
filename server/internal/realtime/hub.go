@@ -1,56 +1,114 @@
-package main
+package realtime
 
 import (
-  "golang.org/x/net/websocket"
-  "fmt"
-  "io"
-  "net/http"
+  "log"
+  "sync"
 )
-type Server struct{
-  conns map[*websocket.Conn]bool
+
+type Hub struct{
+  clients map[string]*Client
+  broadcast chan []byte
+  register chan *Client 
+  unregister chan *Client
+  mu sync.RWMutex
 }
 
-func NewServer() *Server{
-  return &Server{
-    conns:make(map[*websocket.Conn]bool),
+var _ IHub = (*Hub)(nil)
+
+func Newhub() *Hub{
+  return &Hub{
+    broadcast: make(chan []byte,256),
+    register: make(chan *Client,100),
+    unregister: make(chan *Client,100),
+    clients: make(map[string]*Client),
   }
 }
 
-func (s *Server) handleWs(ws *websocket.Conn){
-  fmt.Println("new incoming connection from client:",ws.RemoteAddr())
-  s.conns[ws]= true 
-  s.readLoop(ws)
-
-}
-
-func (s *Server) readLoop(ws *websocket.Conn){
-  buf := make([]byte,1024)
+func (h *Hub) Run(){
+  log.Println("Websocket Hub event has started")
   for {
-    n,err := ws.Read(buf)
-    if err != nil{
-      if err == io.EOF{
-        break
-      }
-      fmt.Println("read error:",err)
-      continue
-    }
-    msg := buf[:n]
+    select {
+    case client := <- h.register:
+      h.mu.Lock()
+      h.clients[clients.UserID] = client
+      h.mu.Unlock()
+      log.Printf("Client registered: UserID = %s, Addr = %s. Toatl active users: %d",
+                  client.UserID,client.Conn.RemoteAddr().String(),len(h.clients))
     
-    s.broadcast(msg)
-  
-  }
-}
-func (s *Server ) broadcast(b []byte){
-  for ws := range s.conns{
-    go func(ws *websocket.Conn){
-      if _,err := ws.Write(b);err != nil{
-        fmt.Println("Write error:",err)
+    case client := <- h.unregister:
+      h.mu.Lock()
+      if existingClient,ok := h.clients[client.UserID]; ok && existingClient == client{
+        delete(h.clients,client.UserID)
+        close(client.Send)
       }
-    }(ws)
+      h.mu.Unlock()
+      log.Printf("Client unregistered:UserId: %s, Addr = %s ,Total Active users = %d",
+                  client.UserID,client.Conn.RemoteAddr().String(),len(h.clients))
+
+    case client := <-h.broadcast:
+      h.mu.RLock()
+      for _,client := range h.clients{
+        select {
+        case client.Send <- message:
+        default:
+          close(client.Send)
+          h.mu.RUnclock()
+          h.mu.RLock()
+          log.Printf("Client %s (UserID : %s) send buffer full or connection problematic,disconnecting",client.Conn.RemoteAddr().String(),client.UserID)
+          
+        }
+      }
+      h.mu.RUnclock()
+    }
   }
 }
-func main(){
-  server := NewServer()
-  http.Handle("/ws",websocket.Handler(server.handleWs))
-  http.ListenAndServe(":3000",nil)
+
+func(h *Hub) RegisterClient(client *Client){
+
+  select {
+  case h.register <- client:
+  
+  default:
+    log.Println("Hub register channel full, client registeration skipped")
+      
+    }
+}
+
+func (h *Hub) UnregisterClient (client *Client){
+
+  select{
+  case h.unregister <- client:
+  
+  default:
+    log.Println("Hub unregister channel is full, client unregisteration delayed")
+  }
+}
+
+func (h *Hub) BroadcastMessage(message[]byte){
+  
+  select {
+  case h.brooadcast <- message:
+  default:
+    log.Println("Hub broadcast channel full, message dropped")
+    
+  }
+}
+
+func (h *Hub) SendToUser(userID string,message[]byte){
+  
+  h.mu.RLock()
+  client,err := h.clients[UserID]
+  h.mu.RUnclock()
+
+  if err != nil{
+    log.Println("Client with UserID %s not found in the Hub, message not sent",UserID)
+    return
+  }
+  select {
+  case client.Send <- message:
+    log.Printf("Message enqued for User %s",userID)
+  default:
+    log.Printf("Client %s (UserID: %s) send buffer full, message to user dropped.",
+                client.Conn.RemoteAddr().String(), userID)
+  }
 }
