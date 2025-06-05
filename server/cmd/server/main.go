@@ -8,6 +8,7 @@ import (
   "github.com/HarshithRajesh/app-chat/internal/api"
   "github.com/HarshithRajesh/app-chat/internal/config"
   "github.com/HarshithRajesh/app-chat/internal/repository"
+  "github.com/HarshithRajesh/app-chat/internal/realtime"
   "github.com/HarshithRajesh/app-chat/internal/service"
   "context"
   "os"
@@ -15,7 +16,8 @@ import (
   "strings"
   "os/signal"
   "syscall"
-  "github.com/gorilla/websocket"
+  "golang.org/x/net/websocket"
+  // "github.com/gorilla/websocket"
 )
 type Response struct{
   Message string `json:"message"`
@@ -25,44 +27,44 @@ func health(w http.ResponseWriter, r *http.Request){
   response := Response{Message: "Hi Welcome to Chaat"}
   json.NewEncoder(w).Encode(response)
 }
-var upgrader = websocket.Upgrader{
-    ReadBufferSize : 1024,
-    WriteBufferSize : 1024,
-    CheckOrigin: func(r *http.Request) bool{return true},
-  }
-func reader(conn *websocket.Conn){
-
-  defer func(){
-    log.Println("Client is disconnected")
-    conn.Close()
-  }()
-
-  for {
-    messageType,p,err := conn.ReadMessage()
-
-    if err !=  nil{
-      log.Printf("Webosocket upgrade error:",err)
-      return
-    }
-    fmt.Println(string(p))
-    if err := conn.WriteMessage(messageType,p);err != nil{
-      log.Printf("Error writing the message: ",err)
-      return
-    }
-  }
-}
+// var upgrader = websocket.Upgrader{
+//     ReadBufferSize : 1024,
+//     WriteBufferSize : 1024,
+//     CheckOrigin: func(r *http.Request) bool{return true},
+//   }
+// func reader(conn *websocket.Conn){
+//
+//   defer func(){
+//     log.Println("Client is disconnected")
+//     conn.Close()
+//   }()
+//
+//   for {
+//     messageType,p,err := conn.ReadMessage()
+//
+//     if err !=  nil{
+//       log.Printf("Webosocket upgrade error:",err)
+//       return
+//     }
+//     fmt.Println(string(p))
+//     if err := conn.WriteMessage(messageType,p);err != nil{
+//       log.Printf("Error writing the message: ",err)
+//       return
+//     }
+//   }
+// }
 
 
 func handler(w http.ResponseWriter, r *http.Request){
   // upgrader.CheckOrigin = func(r *http.Request) bool{return true}
 
-  ws,err := upgrader.Upgrade(w,r,nil)
-  if err != nil{
-    log.Println(err)
-  }
-  defer ws.Close()
+  // ws,err := upgrader.Upgrade(w,r,nil)
+  // if err != nil{
+  //   log.Println(err)
+  // }
+  // defer ws.Close()
   log.Println("Hi,there, Welocome to my chaat ")
-  reader(ws)
+  // reader(ws)
 }
 func main(){
   db := config.ConnectDB()
@@ -72,8 +74,6 @@ func main(){
     fmt.Println("Redis client is not initialized")
   }
   defer redisClient.Close()
-  
-  
   
   server := &http.Server{
     Addr :  ":8080",
@@ -109,7 +109,7 @@ go func(){
   http.HandleFunc("/user/message/history",chatHandler.GetMessage)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
-
+  http.HandleFunc("/chat",realtime.websocket.Handler(server.handleWs))
 
   _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil {
