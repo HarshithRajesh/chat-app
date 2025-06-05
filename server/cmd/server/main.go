@@ -16,7 +16,7 @@ import (
   "strings"
   "os/signal"
   "syscall"
-  "golang.org/x/net/websocket"
+  // "golang.org/x/net/websocket"
   // "github.com/gorilla/websocket"
 )
 type Response struct{
@@ -109,7 +109,7 @@ go func(){
   http.HandleFunc("/user/message/history",chatHandler.GetMessage)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
-  http.HandleFunc("/chat",realtime.websocket.Handler(server.handleWs))
+  // http.HandleFunc("/chat",realtime.websocket.Handler(server.handleWs))
 
   _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
   if err != nil {

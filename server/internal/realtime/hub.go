@@ -1,9 +1,10 @@
-package realtime
+package main
 
 import (
   "golang.org/x/net/websocket"
   "fmt"
   "io"
+  "net/http"
 )
 type Server struct{
   conns map[*websocket.Conn]bool
@@ -39,4 +40,8 @@ func (s *Server) readLoop(ws *websocket.Conn){
   }
 }
 
-
+func main(){
+  server := NewServer()
+  http.Handle("/ws",websocket.Handler(server.handleWs))
+  http.ListenAndServe(":3000",nil)
+}
