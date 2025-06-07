@@ -59,6 +59,16 @@ func (h *Hub) Run(){
         }
       }
       h.mu.RUnclock()
+    case <-ctx.Done():
+      log.Println("Websocket Hub received shutdown")
+      h.mu.Lock()
+      for _,client := range h.clients{
+        client.Conn.WriteMessage(websocket.CloseMessage,[]byte{})
+        close(client.Send)
+      }
+      h.clients = make(map[string]*Client)
+      h.mu.Unlock()
+      return
     }
   }
 }
