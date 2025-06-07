@@ -83,6 +83,12 @@ func main(){
     MaxHeaderBytes: 1<<20,
   }
 
+  appCtx ,cancelFunc:= context.WithCancel(context.Background())
+
+  hub := realtime.NewHub()
+  go hub.Run(appCtx)
+  log.Println("websocket hub started and running in Background")
+
   userRepo := repository.NewUserRepository(db)
   userService := service.NewUserService(userRepo)
   userHandler := api.NewUserHandler(userService)
@@ -91,6 +97,10 @@ func main(){
   chatRepo := repository.NewChatRepository(db)
   chatService := service.NewChatService(chatRepo,redisClient)
   chatHandler := api.NewChatHandler(chatService)
+
+  wsChatHandler := api.NewWsChatHandler(hub,userService,chatService)
+  log.Println("websocket chat handler initialized with hub,user service and chat service")
+
 //add
 go func(){
     log.Println("Server running in the port :8080")
@@ -109,6 +119,9 @@ go func(){
   http.HandleFunc("/user/message/history",chatHandler.GetMessage)
   http.HandleFunc("/health",health)
   http.HandleFunc("/",handler)
+
+  http.HandleFunc("/ws/chat",wsChatHandler.HandleWebSocket)
+  log.Println("Http routes registered, including /ws/chat for websocket")
   // http.HandleFunc("/chat",realtime.websocket.Handler(server.handleWs))
 
   _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
@@ -121,7 +134,6 @@ go func(){
   } else {
     fmt.Println("Redis Consumer group created on stream 'chat_stream'")
   }
-  appCtx ,cancelFunc:= context.WithCancel(context.Background())
 
 	sigChan := make(chan os.Signal, 1) // Create the channel
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM) // Tell Go to send SIGINT/SIGTERM here
