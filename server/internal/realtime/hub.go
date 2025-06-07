@@ -3,6 +3,8 @@ package realtime
 import (
   "log"
   "sync"
+  "context"
+  "github.com/gorilla/websocket"
 )
 
 type Hub struct{
@@ -24,13 +26,13 @@ func Newhub() *Hub{
   }
 }
 
-func (h *Hub) Run(){
+func (h *Hub) Run(ctx context.Context){
   log.Println("Websocket Hub event has started")
   for {
     select {
     case client := <- h.register:
       h.mu.Lock()
-      h.clients[clients.UserID] = client
+      h.clients[client.UserID] = client
       h.mu.Unlock()
       log.Printf("Client registered: UserID = %s, Addr = %s. Toatl active users: %d",
                   client.UserID,client.Conn.RemoteAddr().String(),len(h.clients))
@@ -45,20 +47,20 @@ func (h *Hub) Run(){
       log.Printf("Client unregistered:UserId: %s, Addr = %s ,Total Active users = %d",
                   client.UserID,client.Conn.RemoteAddr().String(),len(h.clients))
 
-    case client := <-h.broadcast:
+    case message := <-h.broadcast:
       h.mu.RLock()
       for _,client := range h.clients{
         select {
         case client.Send <- message:
         default:
           close(client.Send)
-          h.mu.RUnclock()
+          h.mu.Unlock()
           h.mu.RLock()
           log.Printf("Client %s (UserID : %s) send buffer full or connection problematic,disconnecting",client.Conn.RemoteAddr().String(),client.UserID)
           
         }
       }
-      h.mu.RUnclock()
+      h.mu.RUnlock()
     case <-ctx.Done():
       log.Println("Websocket Hub received shutdown")
       h.mu.Lock()
@@ -97,7 +99,7 @@ func (h *Hub) UnregisterClient (client *Client){
 func (h *Hub) BroadcastMessage(message[]byte){
   
   select {
-  case h.brooadcast <- message:
+  case h.broadcast <- message:
   default:
     log.Println("Hub broadcast channel full, message dropped")
     
@@ -107,11 +109,11 @@ func (h *Hub) BroadcastMessage(message[]byte){
 func (h *Hub) SendToUser(userID string,message[]byte){
   
   h.mu.RLock()
-  client,err := h.clients[UserID]
-  h.mu.RUnclock()
+  client,ok := h.clients[userID]
+  h.mu.RUnlock()
 
-  if err != nil{
-    log.Println("Client with UserID %s not found in the Hub, message not sent",UserID)
+  if !ok{
+    log.Println("Client with UserID %s not found in the Hub, message not sent",userID)
     return
   }
   select {
