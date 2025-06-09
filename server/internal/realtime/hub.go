@@ -17,7 +17,7 @@ type Hub struct{
 
 var _ IHub = (*Hub)(nil)
 
-func Newhub() *Hub{
+func NewHub() *Hub{
   return &Hub{
     broadcast: make(chan []byte,256),
     register: make(chan *Client,100),
