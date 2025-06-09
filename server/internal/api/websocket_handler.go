@@ -117,18 +117,26 @@ func(h *WsChatHandler) readPump(client *realtime.Client){
       if err != nil{
         log.Println(err)
       }
+      sender_id,err := strconv.ParseUint(incomingMsg.SenderId,10,64)
+      if err != nil{
+        log.Println(err)
+      }
+      receiver_id,err := strconv.ParseUint(incomingMsg.RecieverID,10,64)
+      if err != nil{
+        log.Println(err)
+      }
       msg:= domain.Message{
         Id: uint(user_id),
-        SenderId: incomingMsg.SenderId,
-        RecieverId:incomingMsg.RecieverId,
+        SenderId: uint(sender_id),
+        ReceiverId :uint(receiver_id),
         Content:incomingMsg.Content,
       }
 
-      chatErr := h.ChatService.SendMessage(msg)
+      chatErr := h.ChatService.SendMessage(&msg)
       if chatErr != nil{
         log.Printf("Error: Failed to send the message from chat service for user USerID %s : %v",client.UserID,err)
       } else{
-        log.Printf("Message from UserID %s to %s successfully pushed to Redis Stream via WebSocket.", incomingMsg.SenderID, incomingMsg.ReceiverID)
+        log.Printf("Message from UserID %s to %s successfully pushed to Redis Stream via WebSocket.", sender_id, receiver_id)
       }
       
     }
@@ -151,7 +159,7 @@ func (h *WsChatHandler) writePump(client *realtime.Client){
       //setting deadline for slow wirtes
       client.Conn.SetWriteDeadline(time.Now().Add(10*time.Second))
       if !ok{
-        client.Conn.WriteMessage(websocket.CloseMesssage,[]byte{})
+        client.Conn.WriteMessage(websocket.CloseMessage,[]byte{})
         return
       }
 
