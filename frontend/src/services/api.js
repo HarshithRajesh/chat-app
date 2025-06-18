@@ -1,9 +1,8 @@
-const API_BASE_URL = 'http://localhost:8080/';
+const API_BASE_URL = "http://localhost:8080/";
 
 async function handleResponse(response) {
   if (!response.ok) {
-
-    let errorMessage = 'Something went wrong';
+    let errorMessage = "Something went wrong";
     try {
       const errorData = await response.json();
       if (errorData && errorData.message) {
@@ -18,10 +17,10 @@ async function handleResponse(response) {
 }
 
 async function signup(userData) {
-  const response = await fetch(`${API_BASE_URL}/singup`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}signup`, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(userData),
   });
@@ -29,10 +28,10 @@ async function signup(userData) {
 }
 
 async function login(credentials) {
-  const response = await fetch(`${API_BASE_URL}/login`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}Login`, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(credentials),
   });
