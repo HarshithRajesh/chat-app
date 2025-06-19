@@ -21,7 +21,7 @@ const SignUp = ({ setIsLoggedIn }) => {
 
     try {
       // STEP 1: Send signup data to your backend
-      const response = await fetch("/signup", {
+      const response = await fetch("http://localhost:8080/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link} from "react-router-dom";
+import { Link } from "react-router-dom";
+
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,9 +13,13 @@ const Login = ({ setIsLoggedIn }) => {
     setIsLoading(true);
     setError("");
 
+    console.log("Starting login request...");
+
     try {
-      const response = await fetch("/Login", {
-        methods: "POST",
+      console.log("Sending request to:", "http://localhost:8080/Login");
+      console.log("Request body:",{email,password})
+      const response = await fetch("http://localhost:8080/Login", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -24,18 +29,43 @@ const Login = ({ setIsLoggedIn }) => {
         }),
       });
 
+      console.log("Response received:",response);
+      console.log("Response status:", response.status);
+
       if (response.ok) {
-        const data = await response.json();
+        
+        const contentType = response.headers.get("content-type");
+        console.log("Content-Type:", contentType);
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          console.log("Login successful (JSON):", data);
+        } else {
+         
+          const textData = await response.text();
+          console.log("Login successful (Text):", textData);
+        }
+
+        console.log("Setting isLoggedIn to true");
         setIsLoggedIn(true);
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || "Login failed");
+        
+        try {
+          const errorData = await response.json();
+          setError(errorData.message || "Login failed");
+        } catch {
+          
+          setError(`Login failed: ${response.status} ${response.statusText}`);
+        }
       }
     } catch (error) {
+      console.error("Fetch error:", error);
       setError("Something went wrong. Please try again");
-      console.error("Login error", error);
+      
     }
+
     setIsLoading(false);
+    console.log("Login request completed");
   };
 
   return (
@@ -58,6 +88,7 @@ const Login = ({ setIsLoggedIn }) => {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
         {error && <div style={{ color: "red" }}>{error}</div>}
@@ -67,7 +98,7 @@ const Login = ({ setIsLoggedIn }) => {
       </form>
 
       <p>
-        Dont have an account <Link to="/signup">Sign Up here</Link>
+        Don't have an account? <Link to="/signup">Sign Up here</Link>
       </p>
     </div>
   );
