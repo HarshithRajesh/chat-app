@@ -1,193 +1,199 @@
-package api 
+package api
 
 import (
-  // "context"
-  "strconv"
-  "log"
-  "net/http"
-  "github.com/gorilla/websocket"
-  "github.com/HarshithRajesh/app-chat/internal/realtime"
-  "github.com/HarshithRajesh/app-chat/internal/domain"
-  "github.com/HarshithRajesh/app-chat/internal/service"
-  "time"
-  "encoding/json"
-) 
-type IncomingMessage struct{
-  SenderId  string  `json:"sender_id"`
-  RecieverID string `json:"reciever_id"`
-  Content   string   `json:"content"`
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/HarshithRajesh/app-chat/internal/domain"
+	"github.com/HarshithRajesh/app-chat/internal/realtime"
+	"github.com/HarshithRajesh/app-chat/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+)
+
+type IncomingMessage struct {
+	SenderId   string `json:"sender_id"`
+	RecieverID string `json:"reciever_id"`
+	Content    string `json:"content"`
 }
+
 var upgrader = websocket.Upgrader{
-  ReadBufferSize: 1024,
-  WriteBufferSize: 1024,
-
-  CheckOrigin: func(r *http.Request) bool{
-    return true
-  },
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-type WsChatHandler struct{
-  Hub realtime.IHub
-  UserService service.UserService
-  ChatService service.ChatService
+type WsChatHandler struct {
+	Hub         realtime.IHub
+	UserService service.UserService
+	ChatService service.ChatService
 }
 
-func NewWsChatHandler(hub realtime.IHub, userService service.UserService,chatService service.ChatService) *WsChatHandler{
-  return &WsChatHandler{
-    Hub:  hub,
-    UserService:  userService,
-    ChatService:  chatService,
-  }
+func NewWsChatHandler(hub realtime.IHub, userService service.UserService, chatService service.ChatService) *WsChatHandler {
+	return &WsChatHandler{
+		Hub:         hub,
+		UserService: userService,
+		ChatService: chatService,
+	}
 }
 
-func (h *WsChatHandler) HandleWebSocket(w http.ResponseWriter, r *http.Request){
+func (h *WsChatHandler) HandleWebSocket(c *gin.Context) {
+	log.Printf("Incoming websocket connection request from %s", c.Request.RemoteAddr)
 
-  log.Printf("Incoming websocket connection request from %s",r.RemoteAddr)
-  //future reference add JWT token or session cookie
-  userID := r.URL.Query().Get("user_id")
-  //upgrade to jwt token verification if there is error then invalid token
-  if userID == ""{
-    log.Printf("ERROR: Websocket connection denied for %s: Missing UserID in query")
-    http.Error(w,"Unauthorized: UserId required",http.StatusUnauthorized)
-    return
-  }
-  log.Printf("Authenticated Websocket connection for UserId: %s from %s",userID,r.RemoteAddr)
+	// Get user_id from query parameters
+	userID := c.Query("user_id")
+	if userID == "" {
+		log.Printf("ERROR: Websocket connection denied for %s: Missing UserID in query", c.Request.RemoteAddr)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: UserId required"})
+		return
+	}
 
-  conn,err := upgrader.Upgrade(w,r,nil)
-  if err != nil{
-    log.Printf("Error: Failed to upgrade connection from http to websocket")
-    return
-  }
+	log.Printf("Authenticated Websocket connection for UserId: %s from %s", userID, c.Request.RemoteAddr)
 
-  client := &realtime.Client{
-    Conn : conn,
-    Send: make(chan []byte,256),
-    UserID: userID,
-  }
+	// Upgrade the HTTP connection to WebSocket
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Printf("Error: Failed to upgrade connection from http to websocket: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to upgrade to websocket"})
+		return
+	}
 
-  h.Hub.RegisterClient(client)
+	client := &realtime.Client{
+		Conn:   conn,
+		Send:   make(chan []byte, 256),
+		UserID: userID,
+	}
 
-  defer func(){
-    h.Hub.UnregisterClient(client)
-    log.Printf("Websocket connection closed for for UserID: %s",userID)
-  }()
-  go h.writePump(client)
-  h.readPump(client)
+	h.Hub.RegisterClient(client)
+
+	defer func() {
+		h.Hub.UnregisterClient(client)
+		log.Printf("Websocket connection closed for UserID: %s", userID)
+	}()
+
+	go h.writePump(client)
+	h.readPump(client)
 }
 
-func(h *WsChatHandler) readPump(client *realtime.Client){
+func (h *WsChatHandler) readPump(client *realtime.Client) {
+	client.Conn.SetReadLimit(512)
+	readDeadLine := 60 * time.Second
 
-  client.Conn.SetReadLimit(512)
-  readDeadLine := 60 * time.Second
+	client.Conn.SetReadDeadline(time.Now().Add(readDeadLine))
+	client.Conn.SetPongHandler(func(string) error {
+		client.Conn.SetReadDeadline(time.Now().Add(readDeadLine))
+		return nil
+	})
 
-  client.Conn.SetReadDeadline(time.Now().Add(readDeadLine))
-  client.Conn.SetPongHandler(func(string)error{
-    client.Conn.SetReadDeadline(time.Now().Add(readDeadLine))
-    return nil
-  })
+	for {
+		messageType, message, err := client.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+				log.Printf("Client %s (UserID: %s) closed Websocket connection gracefully", client.Conn.RemoteAddr(), client.UserID)
+			} else {
+				log.Printf("ERROR: Read error from Websocket client %v", err)
+			}
+			break
+		}
 
-  for {
-    messageType,message,err := client.Conn.ReadMessage()
-    if err != nil{
-      if websocket.IsCloseError(err,websocket.CloseGoingAway,websocket.CloseNormalClosure){
-        log.Printf("Client %s (UserID: %s) closed Websocket connection gracefully.")
-      } else{
-        log.Printf("ERROR: Read error from Websocket client %v",err)
-      }
-      break
-    }
-    log.Printf("Recieved message from client %s (UserID: %s ,Type: %d): %s",client.Conn.RemoteAddr,client.UserID,messageType,message)
+		log.Printf("Received message from client %s (UserID: %s, Type: %d): %s", client.Conn.RemoteAddr(), client.UserID, messageType, message)
 
-    if messageType == websocket.TextMessage{
-      var incomingMsg IncomingMessage
-      if jsonErr := json.Unmarshal(message,&incomingMsg); jsonErr != nil{
-        log.Printf("Error : Failed to Unmarshal incoming chat message from USerID %s : %v.Message %s",client.UserID,jsonErr,message)
-        continue
-      }
+		if messageType == websocket.TextMessage {
+			var incomingMsg IncomingMessage
+			if jsonErr := json.Unmarshal(message, &incomingMsg); jsonErr != nil {
+				log.Printf("Error: Failed to Unmarshal incoming chat message from UserID %s: %v. Message %s", client.UserID, jsonErr, message)
+				continue
+			}
 
-      if incomingMsg.SenderId != client.UserID{
-        log.Printf("ALert: Incoming message from different user sender id : %s , userid : %s",incomingMsg.SenderId,client.UserID)
-        continue
-      }
-      // h.chatService.SendMessage(message)
+			if incomingMsg.SenderId != client.UserID {
+				log.Printf("Alert: Incoming message from different user sender id: %s, userid: %s", incomingMsg.SenderId, client.UserID)
+				continue
+			}
 
-      // sendCtx,cancel := context.WithTimeout(context.Background(),5*time.Second)
-      // defer cancel()
-      user_id,err := strconv.ParseUint(client.UserID,10,64)
-      if err != nil{
-        log.Println(err)
-      }
-      sender_id,err := strconv.ParseUint(incomingMsg.SenderId,10,64)
-      if err != nil{
-        log.Println(err)
-      }
-      receiver_id,err := strconv.ParseUint(incomingMsg.RecieverID,10,64)
-      if err != nil{
-        log.Println(err)
-      }
-      msg:= domain.Message{
-        Id: uint(user_id),
-        SenderId: uint(sender_id),
-        ReceiverId :uint(receiver_id),
-        Content:incomingMsg.Content,
-      }
+			user_id, err := strconv.ParseUint(client.UserID, 10, 64)
+			if err != nil {
+				log.Printf("Error parsing user_id: %v", err)
+				continue
+			}
 
-      chatErr := h.ChatService.SendMessage(&msg)
-      if chatErr != nil{
-        log.Printf("Error: Failed to send the message from chat service for user USerID %s : %v",client.UserID,err)
-      } else{
-        log.Printf("Message from UserID %s to %s successfully pushed to Redis Stream via WebSocket.", sender_id, receiver_id)
-      }
-      
-    }
-  }
- }
+			sender_id, err := strconv.ParseUint(incomingMsg.SenderId, 10, 64)
+			if err != nil {
+				log.Printf("Error parsing sender_id: %v", err)
+				continue
+			}
 
-func (h *WsChatHandler) writePump(client *realtime.Client){
+			receiver_id, err := strconv.ParseUint(incomingMsg.RecieverID, 10, 64)
+			if err != nil {
+				log.Printf("Error parsing receiver_id: %v", err)
+				continue
+			}
 
-  pingPeriod := (60 *time.Second *9)/10
-  ticker := time.NewTicker(pingPeriod)
+			msg := domain.Message{
+				Id:         uint(user_id),
+				SenderId:   uint(sender_id),
+				ReceiverId: uint(receiver_id),
+				Content:    incomingMsg.Content,
+			}
 
-  defer func(){
-    ticker.Stop()
-    client.Conn.Close()
-  }()
+			chatErr := h.ChatService.SendMessage(&msg)
+			if chatErr != nil {
+				log.Printf("Error: Failed to send the message from chat service for UserID %s: %v", client.UserID, chatErr)
+			} else {
+				log.Printf("Message from UserID %d to %d successfully pushed to Redis Stream via WebSocket", sender_id, receiver_id)
+			}
+		}
+	}
+}
 
-  for{
-    select {
-    case message,ok := <-client.Send:
-      //setting deadline for slow wirtes
-      client.Conn.SetWriteDeadline(time.Now().Add(10*time.Second))
-      if !ok{
-        client.Conn.WriteMessage(websocket.CloseMessage,[]byte{})
-        return
-      }
+func (h *WsChatHandler) writePump(client *realtime.Client) {
+	pingPeriod := (60 * time.Second * 9) / 10
+	ticker := time.NewTicker(pingPeriod)
 
-      w,err := client.Conn.NextWriter(websocket.TextMessage)
-      if err != nil{
-        log.Printf("Error: Failed to get Websocket writer for client %s (UserID : %s):%v",client.Conn.RemoteAddr(),client.UserID,err)
-        return
-      }
+	defer func() {
+		ticker.Stop()
+		client.Conn.Close()
+	}()
 
-      w.Write(message)
+	for {
+		select {
+		case message, ok := <-client.Send:
+			// Setting deadline for slow writes
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if !ok {
+				client.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
 
-      n:= len(client.Send)
-      for i:=0;i<n;i++{
-        w.Write([]byte{'\n'})
-        w.Write(<-client.Send)
-      }
+			w, err := client.Conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				log.Printf("Error: Failed to get Websocket writer for client %s (UserID: %s): %v", client.Conn.RemoteAddr(), client.UserID, err)
+				return
+			}
 
-      if err := w.Close();err != nil{
-        log.Println("Error: Failed to close websocket writer")
-        return
-      }
-    case <-ticker.C:
-      client.Conn.SetWriteDeadline(time.Now().Add(10*time.Second))
-      if err := client.Conn.WriteMessage(websocket.PingMessage,nil);err != nil{
-        log.Println("Error: Ping error for the client")
-        return
-      }
-      
-    }
-  }
+			w.Write(message)
+
+			n := len(client.Send)
+			for i := 0; i < n; i++ {
+				w.Write([]byte{'\n'})
+				w.Write(<-client.Send)
+			}
+
+			if err := w.Close(); err != nil {
+				log.Printf("Error: Failed to close websocket writer: %v", err)
+				return
+			}
+
+		case <-ticker.C:
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("Error: Ping error for the client: %v", err)
+				return
+			}
+		}
+	}
 }

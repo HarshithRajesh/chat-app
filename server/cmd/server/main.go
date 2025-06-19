@@ -1,178 +1,149 @@
-package main 
+package main
 
 import (
-  "encoding/json"
-  "fmt"
-  "log"
-  "net/http"
-  "github.com/HarshithRajesh/app-chat/internal/api"
-  "github.com/HarshithRajesh/app-chat/internal/config"
-  "github.com/HarshithRajesh/app-chat/internal/repository"
-  "github.com/HarshithRajesh/app-chat/internal/realtime"
-  "github.com/HarshithRajesh/app-chat/internal/service"
-  "context"
-  "os"
-  "time"
-  "strings"
-  "os/signal"
-  "syscall"
-  // "golang.org/x/net/websocket"
-  // "github.com/gorilla/websocket"
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/HarshithRajesh/app-chat/internal/api"
+	"github.com/HarshithRajesh/app-chat/internal/config"
+	"github.com/HarshithRajesh/app-chat/internal/realtime"
+	"github.com/HarshithRajesh/app-chat/internal/repository"
+	"github.com/HarshithRajesh/app-chat/internal/service"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
-type Response struct{
-  Message string `json:"message"`
+
+type Response struct {
+	Message string `json:"message"`
 }
-func health(w http.ResponseWriter, r *http.Request){
-  w.Header().Set("Content-Type","application/json")
-  response := Response{Message: "Hi Welcome to Chaat"}
-  json.NewEncoder(w).Encode(response)
+
+func health(c *gin.Context) {
+	response := Response{Message: "Hi Welcome to Chaat"}
+	c.JSON(http.StatusOK, response)
 }
-// var upgrader = websocket.Upgrader{
-//     ReadBufferSize : 1024,
-//     WriteBufferSize : 1024,
-//     CheckOrigin: func(r *http.Request) bool{return true},
-//   }
-// func reader(conn *websocket.Conn){
-//
-//   defer func(){
-//     log.Println("Client is disconnected")
-//     conn.Close()
-//   }()
-//
-//   for {
-//     messageType,p,err := conn.ReadMessage()
-//
-//     if err !=  nil{
-//       log.Printf("Webosocket upgrade error:",err)
-//       return
-//     }
-//     fmt.Println(string(p))
-//     if err := conn.WriteMessage(messageType,p);err != nil{
-//       log.Printf("Error writing the message: ",err)
-//       return
-//     }
-//   }
-// }
 
-
-func handler(w http.ResponseWriter, r *http.Request){
-  // upgrader.CheckOrigin = func(r *http.Request) bool{return true}
-
-  // ws,err := upgrader.Upgrade(w,r,nil)
-  // if err != nil{
-  //   log.Println(err)
-  // }
-  // defer ws.Close()
-  log.Println("Hi,there, Welocome to my chaat ")
-  // reader(ws)
+func handler(c *gin.Context) {
+	log.Println("Hi,there, Welcome to my chat")
+	c.JSON(http.StatusOK, gin.H{"message": "Welcome to chat app"})
 }
-func main(){
-  db := config.ConnectDB()
-  ctx := context.Background()
-  redisClient,err := config.ConnectRedisDB()
-  if err != nil{
-    fmt.Println("Redis client is not initialized")
-  }
-  defer redisClient.Close()
-  
-  server := &http.Server{
-    Addr :  ":8080",
-    Handler : nil,
-    ReadTimeout:  10* time.Second,
-    WriteTimeout: 10* time.Second,
-    MaxHeaderBytes: 1<<20,
-  }
 
-  appCtx ,cancelFunc:= context.WithCancel(context.Background())
+func main() {
+	// Set Gin mode (can be gin.ReleaseMode for production)
+	gin.SetMode(gin.DebugMode)
 
-  hub := realtime.NewHub()
-  go hub.Run(appCtx)
-  log.Println("websocket hub started and running in Background")
+	db := config.ConnectDB()
+	ctx := context.Background()
+	redisClient, err := config.ConnectRedisDB()
+	if err != nil {
+		fmt.Println("Redis client is not initialized")
+	}
+	defer redisClient.Close()
 
-  userRepo := repository.NewUserRepository(db)
-  userService := service.NewUserService(userRepo)
-  userHandler := api.NewUserHandler(userService)
+	// Initialize Gin router
+	router := gin.Default()
 
+	// CORS middleware
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
+	config.AllowHeaders = []string{"Content-Type", "Authorization"}
+	router.Use(cors.New(config))
 
-  chatRepo := repository.NewChatRepository(db)
-  chatService := service.NewChatService(chatRepo,redisClient)
-  chatHandler := api.NewChatHandler(chatService)
+	appCtx, cancelFunc := context.WithCancel(context.Background())
 
-  wsChatHandler := api.NewWsChatHandler(hub,userService,chatService)
-  log.Println("websocket chat handler initialized with hub,user service and chat service")
+	hub := realtime.NewHub()
+	go hub.Run(appCtx)
+	log.Println("websocket hub started and running in Background")
 
-//add
-go func(){
-    log.Println("Server running in the port :8080")
-    err := server.ListenAndServe()
-    if err != nil && err != http.ErrServerClosed{
-      log.Printf("Error while running the server: %v",err)
-    }
-    log.Println("Http Server closed")
-  }()
-  http.HandleFunc("/signup",userHandler.SignUp)
-  http.HandleFunc("/Login",userHandler.Login)
-  http.HandleFunc("/profile",userHandler.Profile)
-  http.HandleFunc("/contact",userHandler.Contact)
-  http.HandleFunc("/contact/listcontacts",userHandler.ViewContact)
-  http.HandleFunc("/user/message",chatHandler.SendMessage)
-  http.HandleFunc("/user/message/history",chatHandler.GetMessage)
-  http.HandleFunc("/health",health)
-  http.HandleFunc("/",handler)
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := api.NewUserHandler(userService)
 
-  http.HandleFunc("/ws/chat",wsChatHandler.HandleWebSocket)
-  log.Println("Http routes registered, including /ws/chat for websocket")
-  // http.HandleFunc("/chat",realtime.websocket.Handler(server.handleWs))
+	chatRepo := repository.NewChatRepository(db)
+	chatService := service.NewChatService(chatRepo, redisClient)
+	chatHandler := api.NewChatHandler(chatService)
 
-  _,err = redisClient.XGroupCreateMkStream(ctx,"chat_stream","chat_processor","$").Result()
-  if err != nil {
-    if strings.Contains(err.Error(), "BUSYGROUP Consumer Group name already exists") {
-        fmt.Println("Redis group already exists")
-    } else {
-        log.Fatalf("Error creating Redis Consumer Group: %v", err)
-    }
-  } else {
-    fmt.Println("Redis Consumer group created on stream 'chat_stream'")
-  }
+	wsChatHandler := api.NewWsChatHandler(hub, userService, chatService)
+	log.Println("websocket chat handler initialized with hub,user service and chat service")
 
-	sigChan := make(chan os.Signal, 1) // Create the channel
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM) // Tell Go to send SIGINT/SIGTERM here
+	// Define routes
+	router.GET("/health", health)
+	router.GET("/", handler)
+
+	// User routes
+	router.POST("/signup", userHandler.SignUp)
+	router.POST("/Login", userHandler.Login)
+	router.GET("/profile", userHandler.Profile)
+
+	// Contact routes
+	router.POST("/contact", userHandler.Contact)
+	router.GET("/contact/listcontacts", userHandler.ViewContact)
+
+	// Message routes
+	router.POST("/user/message", chatHandler.SendMessage)
+	router.GET("/user/message/history", chatHandler.GetMessage)
+
+	// WebSocket route (needs special handling)
+	router.GET("/ws/chat", wsChatHandler.HandleWebSocket)
+
+	log.Println("Http routes registered, including /ws/chat for websocket")
+
+	// Create HTTP server with Gin router
+	server := &http.Server{
+		Addr:           ":8080",
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// Start server in goroutine
+	go func() {
+		log.Println("Server running on port :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Error while running the server: %v", err)
+		}
+		log.Println("Http Server closed")
+	}()
+
+	_, err = redisClient.XGroupCreateMkStream(ctx, "chat_stream", "chat_processor", "$").Result()
+	if err != nil {
+		if strings.Contains(err.Error(), "BUSYGROUP Consumer Group name already exists") {
+			fmt.Println("Redis group already exists")
+		} else {
+			log.Fatalf("Error creating Redis Consumer Group: %v", err)
+		}
+	} else {
+		fmt.Println("Redis Consumer group created on stream 'chat_stream'")
+	}
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		sig := <-sigChan
-
 		log.Printf("Received signal %v. Initiating graceful shutdown...", sig)
-
 		cancelFunc()
-
 	}()
- 
-	log.Println("Signal handling configured. Press Ctrl+C to shut down gracefully.")
-  // defer cancel()
-  hostname,_ := os.Hostname()
-  consumerName := fmt.Sprintf("consumer-%s-%d",hostname,os.Getpid())
-  readCount := int64(10)
-  blockDuration := time.Duration(0)
 
-  go service.StartMessageConsumer(appCtx,redisClient,"chat_stream","chat_processor",consumerName,readCount,blockDuration)
- 
-  log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+C to stop)...")
+	log.Println("Signal handling configured. Press Ctrl+C to shut down gracefully.")
+
+	hostname, _ := os.Hostname()
+	consumerName := fmt.Sprintf("consumer-%s-%d", hostname, os.Getpid())
+	readCount := int64(10)
+	blockDuration := time.Duration(0)
+
+	go service.StartMessageConsumer(appCtx, redisClient, "chat_stream", "chat_processor", consumerName, readCount, blockDuration)
+
+	log.Println("Application is running. Waiting for shutdown signal (Press Ctrl+C to stop)...")
 	<-appCtx.Done()
 
-  log.Println("Shutdown signal received. Main goroutine unblocked. Application stopping.")
-  // messages,err := repository.ReadMessageFromStream(ctx,redisClient,"chat_stream","0",3)
-  //   if err != nil{
-  //   fmt.Printf("Error reading from the stream: %v\n",err)
-  // }else{
-  //   for _,stream := range messages{
-  //     for _,msg := range stream.Messages{
-  //       fmt.Printf("Message Id : %s\n",msg.ID)
-  //       fmt.Println("Values:")
-  //       for field,value := range msg.Values{
-  //         fmt.Printf("  %s: %v\n",field,value)
-  //       }
-  //     }
-  // }
-  //     }
- 
+	log.Println("Shutdown signal received. Main goroutine unblocked. Application stopping.")
 }
