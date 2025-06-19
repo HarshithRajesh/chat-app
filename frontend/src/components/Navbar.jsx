@@ -5,7 +5,12 @@ export function Navbar() {
       <Link to="/">
         <button>Home</button>
       </Link>
-      <Link to="/"></Link>
+      <Link to="/Contact">
+        <button>Contact</button>
+      </Link>
+      <Link to="/Profile">
+        <button>Profile</button>
+      </Link>
     </>
   );
 }
