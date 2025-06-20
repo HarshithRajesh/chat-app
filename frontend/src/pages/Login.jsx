@@ -40,6 +40,13 @@ const Login = ({ setIsLoggedIn }) => {
         if (contentType && contentType.includes("application/json")) {
           const data = await response.json();
           console.log("Login successful (JSON):", data);
+
+          const userData = {
+            id: parseInt(data.id) || parseInt(data.user_id) || parseInt(data.userId),
+            email: data.email || email,
+            name: data.name || ""
+          };
+          localStorage.setItem('user', JSON.stringify(userData));
         } else {
          
           const textData = await response.text();
@@ -69,37 +76,45 @@ const Login = ({ setIsLoggedIn }) => {
   };
 
   return (
-    <div>
-      <h2>Login to the Chat</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="auth-container">
+      <div className="auth-card">
+        <h1 className="auth-title">Welcome Back</h1>
+        <p className="auth-subtitle">Sign in to continue to your account</p>
+        
+        <form className="auth-form" onSubmit={handleLogin}>
+          <div className="input-group">
+            <label className="input-label">Email</label>
+            <input 
+              className="input-field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="input-group">
+            <label className="input-label">Password</label>
+            <input 
+              className="input-field"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          {error && <div className="error-message">{error}</div>}
+          
+          <button className="auth-button" type="submit" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        
+        <div className="auth-link">
+          Don't have an account? <Link to="/signup">Sign up</Link>
         </div>
-
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <div style={{ color: "red" }}>{error}</div>}
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Logging In..." : "Login"}
-        </button>
-      </form>
-
-      <p>
-        Don't have an account? <Link to="/signup">Sign Up here</Link>
-      </p>
+      </div>
     </div>
   );
 };

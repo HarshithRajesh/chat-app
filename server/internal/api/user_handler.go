@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/HarshithRajesh/app-chat/internal/domain"
 	"github.com/HarshithRajesh/app-chat/internal/service"
@@ -43,7 +44,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Login successfully", "id": user.Id})
 }
 
 func (h *UserHandler) Profile(c *gin.Context) {
@@ -82,18 +83,15 @@ func (h *UserHandler) Contact(c *gin.Context) {
 }
 
 func (h *UserHandler) ViewContact(c *gin.Context) {
-	var req domain.ContactRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	// Get the user ID from the URL parameter
+	idParam := c.Query("id")
+	userId, err := strconv.Atoi(idParam)
+	if err != nil || userId == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or missing user ID"})
 		return
 	}
 
-	if req.UserId == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User Id is required"})
-		return
-	}
-
-	profiles, err := h.userService.ViewContactList(req.UserId)
+	profiles, err := h.userService.ViewContactList(uint(userId))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

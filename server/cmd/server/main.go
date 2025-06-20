@@ -52,7 +52,7 @@ func main() {
 	// CORS middleware
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET", "POST", "OPTIONS"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "OPTIONS"}
 	config.AllowHeaders = []string{"Content-Type", "Authorization"}
 	router.Use(cors.New(config))
 
@@ -80,7 +80,7 @@ func main() {
 	// User routes
 	router.POST("/signup", userHandler.SignUp)
 	router.POST("/Login", userHandler.Login)
-	router.GET("/profile", userHandler.Profile)
+	router.PUT("/profile", userHandler.Profile)
 
 	// Contact routes
 	router.POST("/contact", userHandler.Contact)

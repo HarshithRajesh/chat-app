@@ -1,16 +1,19 @@
 import React from "react";
+import './App.css'; // Add this import
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
-// import Chat from "./pages/Chat";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
-import Contacts from "./pages/Contacts.jsx";
+import Contact from "./pages/Contacts.jsx";
 import Profile from "./pages/Profile.jsx";
+import Chat from "./pages/Chat.jsx"; // Make sure this import is correct
 import Layout from "./components/Layout";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useState } from "react";
+
+
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // Set to true for testing
 
   if (!isLoggedIn) {
     return (
@@ -35,9 +38,9 @@ const App = () => {
       <Routes>
         <Route element={<Layout setIsLoggedIn={setIsLoggedIn} />}>
           <Route path="/" element={<Home />} />
-          {/* <Route path="/chat" element={<Chat />} /> */}
-          <Route path="/contact" element={<Contacts />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/chat" element={<Chat />} />
         </Route>
 
         <Route path="/Login" element={<Navigate to="/" />} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const SignUp = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState("");
@@ -6,13 +7,13 @@ const SignUp = ({ setIsLoggedIn }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
 
-    // Check if passwords match
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords don't match");
       return;
     }
 
@@ -20,7 +21,6 @@ const SignUp = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      // STEP 1: Send signup data to your backend
       const response = await fetch("http://localhost:8080/signup", {
         method: "POST",
         headers: {
@@ -33,21 +33,46 @@ const SignUp = ({ setIsLoggedIn }) => {
       });
 
       if (response.ok) {
-        // STEP 2: Signup successful - automatically log them in
-        setIsLoggedIn(true);
+        const contentType = response.headers.get("content-type");
 
-        // Optional: Store user info
-        // const data = await response.json();
-        // localStorage.setItem('userToken', data.token);
-        // localStorage.setItem('userEmail', email);
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          console.log("Signup successful (JSON):", data);
+
+          // Store user data in localStorage
+          const userData = {
+            id: parseInt(data.id) || parseInt(data.user_id) || parseInt(data.userId),
+            email: data.email || email,
+            name: data.name || ""
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+        } else {
+          const textData = await response.text();
+          console.log("Signup successful (Text):", textData);
+
+          // Store basic user data - you'll need user ID from backend
+          const userData = {
+            id: null, // Backend should return user ID
+            email: email,
+            name: "",
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+        }
+
+        setIsLoggedIn(true);
+        // Redirect to profile page instead of home
+        navigate("/profile");
       } else {
-        // Signup failed
-        const errorData = await response.json();
-        setError(errorData.message || "Signup failed");
+        try {
+          const errorData = await response.json();
+          setError(errorData.message || "Signup failed");
+        } catch {
+          setError(`Signup failed: ${response.status} ${response.statusText}`);
+        }
       }
     } catch (error) {
-      setError("Something went wrong. Please try again.");
       console.error("Signup error:", error);
+      setError("Something went wrong. Please try again");
     }
 
     setIsLoading(false);
@@ -55,8 +80,7 @@ const SignUp = ({ setIsLoggedIn }) => {
 
   return (
     <div>
-      <h2>Create Your Account</h2>
-
+      <h2>Sign Up for Chat App</h2>
       <form onSubmit={handleSignUp}>
         <div>
           <input
@@ -67,7 +91,6 @@ const SignUp = ({ setIsLoggedIn }) => {
             required
           />
         </div>
-
         <div>
           <input
             type="password"
@@ -77,7 +100,6 @@ const SignUp = ({ setIsLoggedIn }) => {
             required
           />
         </div>
-
         <div>
           <input
             type="password"
@@ -87,17 +109,13 @@ const SignUp = ({ setIsLoggedIn }) => {
             required
           />
         </div>
-
         {error && <div style={{ color: "red" }}>{error}</div>}
-
         <button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
+          {isLoading ? "Signing Up..." : "Sign Up"}
         </button>
       </form>
-
       <p>
-        Already have an account?
-        <a href="/Login">Login here</a>
+        Already have an account? <Link to="/login">Login here</Link>
       </p>
     </div>
   );
