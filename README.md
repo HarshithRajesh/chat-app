@@ -1,3 +1,2 @@
 # chat-app
-
-websockets 
+chat using websockets
